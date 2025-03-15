@@ -142,15 +142,6 @@ paths:
       responses:
         '200':
           description: ok
-    post:
-      tags:
-        - game
-      summary: update rating
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: ok
 
 # shop
 
