@@ -7,8 +7,13 @@ tasks:
     
   test:
     cmds:
-      - go test ./...
+      - go test -v ./...
 
   lint:
     cmds:
       - golangci-lint run
+
+  docker-build:
+    cmds:
+      - docker build -t vk-db -f db/Dockerfile .
+      - docker build -t vk-app -f cmd/app/Dockerfile .
