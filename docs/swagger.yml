@@ -1,0 +1,184 @@
+openapi: 3.0.3
+info:
+  title: Api
+  version: 1.0.0
+tags:
+  - name: admin panel
+  - name: profile
+  - name: game
+  - name: shop
+
+paths:
+
+# admin panel
+
+  /api/v1/admin/bonus/promocodes:
+    post:
+      tags:
+        - admin panel
+      summary: add new promocodes
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+  /api/v1/admin/bonus/items:
+    post:
+      tags:
+        - admin panel
+      summary: add new items
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+# profile
+
+  /api/v1/profile/{uuid}/data:
+    get:
+      tags:
+        - profile
+      summary: get profile data
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: integer
+          required: true
+          description: user uuid
+      responses:
+        '200':
+          description: ok
+    post:
+      tags:
+        - profile
+      summary: update profile
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: integer
+          required: true
+          description: user uuid
+      responses:
+        '200':
+          description: ok
+      
+  /api/v1/profile/{uuid}/rating:
+    get:
+      tags:
+        - profile
+      summary: get user rating
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: integer
+          required: true
+          description: user uuid
+      responses:
+        '200':
+          description: ok
+    post:
+      tags:
+        - profile
+      summary: update user rating
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: uuid
+          schema:
+            type: integer
+          required: true
+          description: user uuid
+      responses:
+        '200':
+          description: ok
+
+# game
+
+  /api/v1/game/settings:
+    get:
+      tags:
+        - game
+      summary: get game settings
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+    post:
+      tags:
+        - game
+      summary: update game settings
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  
+  /api/v1/game/rating/top:
+    get:
+      tags:
+        - game
+      summary: get rating e.g. top-10 / top-20
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+          description: offset n for top-n list
+      responses:
+        '200':
+          description: ok
+    post:
+      tags:
+        - game
+      summary: update rating
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+# shop
+
+  /api/v1/shop/promocodes:
+    get:
+      tags:
+        - shop
+      summary: get list of promocodes
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+    
+  /api/v1/shop/items:
+    get:
+      tags:
+        - shop
+      summary: get list of items
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
