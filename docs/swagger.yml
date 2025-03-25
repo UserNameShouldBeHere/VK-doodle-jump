@@ -100,6 +100,12 @@ paths:
             type: integer
           required: true
           description: user uuid
+      requestBody:
+        required: true
+        content:
+          application/form:
+            schema:
+              $ref: '#/components/schemas/TopScoreResponse'
       responses:
         '200':
           description: ok
@@ -142,6 +148,10 @@ paths:
       responses:
         '200':
           description: ok
+          content:
+            application/form:
+              schema:
+                $ref: '#/components/schemas/TopScoreResponse'
 
 # shop
 
@@ -173,3 +183,33 @@ components:
       type: apiKey
       in: cookie
       name: token
+
+  schemas:
+    NewScoreRequest:
+      required:
+        - score
+      properties:
+        score:
+          type: integer
+          example: 100
+
+    TopScoreResponse:
+      required:
+        - users
+      properties:
+        users:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - score
+            properties:
+              name:
+                type: string
+                example: "Dima"
+              score:
+                type: integer
+                example: 100
+
+
