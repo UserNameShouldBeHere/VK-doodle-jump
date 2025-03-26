@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
@@ -28,7 +27,7 @@ type UsersTopResponse struct {
 
 func (h *GameHandler) GetTopUsers(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	offset, err := strconv.Atoi(mux.Vars(req)["offset"])
+	offset, err := strconv.Atoi(req.URL.Query().Get("offset"))
 	if err != nil || offset <= 0 {
 		offset = 10
 	}
