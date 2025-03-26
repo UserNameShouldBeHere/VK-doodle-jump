@@ -28,12 +28,12 @@ func main() {
 	)
 
 	flag.StringVar(&host, "h", "localhost", "server host")
-	flag.IntVar(&port, "p", 8080, "server ip")
+	flag.IntVar(&port, "p", 80, "server ip")
 	flag.Parse()
 
 	pool, err := pgxpool.New(context.Background(), fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		"localhost",
+		"postgres",
 		"5432",
 		"postgres",
 		"root1234",
@@ -79,7 +79,7 @@ func main() {
 	router := initRouter(gameHandler, profileHandler)
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", host, port),
+		Addr:         fmt.Sprintf(":%d", port),
 		Handler:      router,
 		ReadTimeout:  time.Second * 5,
 		WriteTimeout: time.Second * 5,

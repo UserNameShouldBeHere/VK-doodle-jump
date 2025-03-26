@@ -46,6 +46,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 			if err != nil {
 				return fmt.Errorf("(postgres.UpdateUserRating): %w", err)
 			}
+
+			return nil
 		}
 
 		return fmt.Errorf("(postgres.UpdateUserRating): %w", err)
@@ -59,8 +61,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 			return fmt.Errorf("(postgres.UpdateUserRating): %w", err)
 		}
 		_, err = s.pgConn.Exec(ctx, `
-			update rating set last_update = now() where name = $2;
-		`, newScore, uuid)
+			update rating set last_update = now() where name = $1;
+		`, uuid)
 		if err != nil {
 			return fmt.Errorf("(postgres.UpdateUserRating): %w", err)
 		}

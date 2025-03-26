@@ -5,7 +5,7 @@ services:
     build:
       dockerfile: ./db/Dockerfile
     environment:
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=root1234
       - POSTGRES_USER=postgres
     networks:
       - app_network
@@ -16,7 +16,7 @@ services:
     build:
       dockerfile: ./cmd/app/Dockerfile
     ports:
-      - 8080:8080
+      - 80:80
     depends_on:
       - postgres
     networks:
