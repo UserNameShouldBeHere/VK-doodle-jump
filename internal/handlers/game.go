@@ -22,7 +22,7 @@ func NewGameHandler(usersService UsersService, logger *zap.SugaredLogger) (*Game
 }
 
 type UsersTopResponse struct {
-	Users []domain.UserRating `json:"users"`
+	Users []domain.LeagueTopUsers `json:"users"`
 }
 
 func (h *GameHandler) GetTopUsers(w http.ResponseWriter, req *http.Request) {

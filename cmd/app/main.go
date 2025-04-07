@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/tarantool/go-tarantool/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/handlers"
-	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/repository/postgres"
+	storage "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/repository/tarantool"
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/services"
 )
 
@@ -31,16 +31,32 @@ func main() {
 	flag.IntVar(&port, "p", 80, "server ip")
 	flag.Parse()
 
-	pool, err := pgxpool.New(context.Background(), fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		"postgres",
-		"5432",
-		"postgres",
-		"root1234",
-		"vk_games",
-	))
+	// pool, err := pgxpool.New(context.Background(), fmt.Sprintf(
+	// 	"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	// 	"postgres",
+	// 	"5432",
+	// 	"postgres",
+	// 	"root1234",
+	// 	"vk_games",
+	// ))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	dialer := tarantool.NetDialer{
+		Address:  "127.0.0.1:3301",
+		User:     "admin",
+		Password: "pass",
+	}
+	opts := tarantool.Opts{
+		Timeout: time.Second,
+	}
+
+	conn, err := tarantool.Connect(ctx, dialer, opts)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println("Connection refused:", err)
+		return
 	}
 
 	config := zap.Config{
@@ -57,7 +73,7 @@ func main() {
 	}
 	sugarLogger := logger.Sugar()
 
-	usersStorage, err := postgres.NewUsersStorage(pool)
+	usersStorage, err := storage.NewUsersStorage(conn)
 	if err != nil {
 		log.Fatal(err)
 	}

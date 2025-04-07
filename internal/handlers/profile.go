@@ -14,7 +14,7 @@ import (
 
 type UsersService interface {
 	UpdateUserRating(ctx context.Context, uuid string, newScore int) error
-	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
+	GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error)
 }
 
 type ProfileHandler struct {

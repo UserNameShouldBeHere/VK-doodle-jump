@@ -11,7 +11,7 @@ import (
 
 type UsersStorage interface {
 	UpdateUserRating(ctx context.Context, uuid string, newScore int) error
-	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
+	GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error)
 }
 
 type UsersService struct {
@@ -36,7 +36,7 @@ func (s *UsersService) UpdateUserRating(ctx context.Context, uuid string, newSco
 	return nil
 }
 
-func (s *UsersService) GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error) {
+func (s *UsersService) GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error) {
 	usersTop, err := s.storage.GetTopUsers(ctx, count)
 	if err != nil {
 		s.logger.Errorf("failed to get top users: %v", err)
