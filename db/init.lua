@@ -3,6 +3,8 @@ datetime = require('datetime')
 box.cfg{listen = 3301}
 box.schema.user.passwd('pass')
 
+-- ===================================
+
 box.schema.space.create('leagues')
 
 box.space.leagues:format({
@@ -12,12 +14,29 @@ box.space.leagues:format({
     {name = 'stay_cnt', type = 'unsigned'},
 })
 
-box.space.leagues:create_index('primary', {type = 'tree', parts = {'id'}})
+box.space.leagues:create_index('primary', {type = 'tree', parts = {
+    {'id', sort_order = 'desc'}
+}})
 
-box.space.leagues:insert{1, 'league1', 3, 4}
-box.space.leagues:insert{2, 'league2', 2, 3}
-box.space.leagues:insert{3, 'league3', 1, 2}
-box.space.leagues:insert{4, 'league4', 0, 2}
+box.space.leagues:insert{0, 'Дерево', 3, 0}
+box.space.leagues:insert{1, 'Медь', 2, 3}
+box.space.leagues:insert{2, 'Серебро', 1, 2}
+box.space.leagues:insert{3, 'Золото', 0, 2}
+
+box.schema.func.drop('leagues_settings', {if_exists = true})
+box.schema.func.create('leagues_settings', {
+    body = [[
+        function()
+            local res = {}
+            
+            for _, league in ipairs(box.space.leagues.index.primary:select({})) do
+                table.insert(res, box.tuple.new({league.id, league.up_cnt, league.stay_cnt}))
+            end
+
+            return res
+        end
+    ]]
+})
 
 -- ===================================
 
@@ -42,16 +61,14 @@ box.space.users:create_index('league_score_update', {type = 'tree', parts = {
     {'last_update', sort_order = 'asc'}
 }})
 
-box.schema.func.drop('top_users', {if_exists = true})
+box.schema.func.drop('users_top', {if_exists = true})
 box.schema.func.create('users_top', {
     body = [[
         function(limit)
             local lim = args.limit or 10
-
-            local users = box.space.users.index.score_update:select({}, {limit = lim})
             local res = {}
             
-            for _, user in ipairs(users) do
+            for _, user in ipairs(box.space.users.index.score_update:select({}, {limit = lim})) do
                 table.insert(res, box.tuple.new({user.name, user.max_score}))
             end
 
@@ -97,36 +114,38 @@ box.schema.func.create('user_score', {
     ]]
 })
 
--- ===================================
-
-box.schema.func.drop('tmp', {if_exists = true})
-box.schema.func.create('tmp', {
+box.schema.func.drop('league_users_pos', {if_exists = true})
+box.schema.func.create('league_users_pos', {
     body = [[
         function(args)
-            local leagues = {}
-
-            for _, league in ipairs(box.space.leagues.index.primary:select({})) do
-                table.insert(leagues, box.tuple.new({league.id, league.name}))
+            local league = args.league or 1
+            local res = {}
+            
+            for _, user in ipairs(box.space.users.index.league_score_update:select({league})) do
+                table.insert(res, box.tuple.new({user.name}))
             end
-            
-            local lim = args.limit or 10
-            local top_users = {}
-            
-            for _, league in ipairs(leagues) do
-                local leagueUsers = {}
-                local users = box.space.users.index.league_score_update:select({league[1]}, {limit = lim})
-                
+
+            return res
+        end
+    ]]
+})
+
+box.schema.func.drop('league_change', {if_exists = true})
+box.schema.func.create('league_change', {
+    body = [[
+        function(args)
+            local users = args.users
+            local up = args.up or false
+
+            if (up) then
                 for _, user in ipairs(users) do
-                    table.insert(leagueUsers, box.tuple.new({user.name, user.max_score}))
+                    box.space.users.index.name:update(user, {{'+', 2, 1}})
                 end
-
-                table.insert(top_users, leagueUsers)
+            else
+                for _, user in ipairs(users) do
+                    box.space.users.index.name:update(user, {{'-', 2, 1}})
+                end
             end
-
-            return {
-                leagues = leagues,
-                top_users = top_users
-            }
         end
     ]]
 })

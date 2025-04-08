@@ -15,10 +15,28 @@ type UsersStorage struct {
 	conn *tarantool.Connection
 }
 
-func NewUsersStorage(conn *tarantool.Connection) (*UsersStorage, error) {
-	return &UsersStorage{
+func NewUsersStorage(ctx context.Context, conn *tarantool.Connection) (*UsersStorage, error) {
+	storage := &UsersStorage{
 		conn: conn,
-	}, nil
+	}
+
+	go func() {
+		<-time.After(time.Second * 10)
+
+		for {
+			select {
+			case <-time.After(time.Second * 10):
+				err := storage.updateLeagues()
+				if err != nil {
+					fmt.Println(err)
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+
+	return storage, nil
 }
 
 func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newScore int) error {
@@ -29,7 +47,7 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 			}}),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.GetTopUsers): %w", err)
+		return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
 	}
 
 	tm := time.Now()
@@ -45,11 +63,11 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 	if err != nil {
 		_, err = s.conn.Do(
 			tarantool.NewInsertRequest("users").
-				Tuple([]interface{}{uuid, 1, newScore, datetime}),
+				Tuple([]interface{}{uuid, 0, newScore, datetime}),
 		).Get()
 
 		if err != nil {
-			return fmt.Errorf("(tarantool.GetTopUsers): %w", err)
+			return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
 		}
 
 		return nil
@@ -66,7 +84,7 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 		).Get()
 
 		if err != nil {
-			return fmt.Errorf("(tarantool.GetTopUsers): %w", err)
+			return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
 		}
 
 		fmt.Println(data)
@@ -93,4 +111,92 @@ func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.Lea
 	}
 
 	return data[0], nil
+}
+
+func (s *UsersStorage) updateLeagues() error {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("leagues_settings").
+			Args([]interface{}{}),
+	).GetResponse()
+	if err != nil {
+		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+	}
+
+	var settings [][]struct {
+		Id      int
+		UpCnt   int
+		StayCnt int
+	}
+	err = resp.DecodeTyped(&settings)
+	if err != nil {
+		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+	}
+
+	leagueUsers := make([][]string, len(settings[0]))
+	for _, league := range settings[0] {
+		resp, err = s.conn.Do(
+			tarantool.NewCallRequest("league_users_pos").
+				Args([]interface{}{map[string]interface{}{
+					"league": league.Id,
+				}}),
+		).GetResponse()
+		if err != nil {
+			return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		}
+
+		var users [][]struct {
+			Name string
+		}
+		err = resp.DecodeTyped(&users)
+		if err != nil {
+			return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		}
+
+		for _, user := range users[0] {
+			leagueUsers[league.Id] = append(leagueUsers[league.Id], user.Name)
+		}
+	}
+
+	for _, league := range settings[0] {
+		usersToLUp := make([]string, 0, league.UpCnt)
+		if len(leagueUsers[league.Id]) < league.UpCnt {
+			for _, user := range leagueUsers[league.Id] {
+				usersToLUp = append(usersToLUp, user)
+			}
+		} else {
+			for _, user := range leagueUsers[league.Id][0:league.UpCnt] {
+				usersToLUp = append(usersToLUp, user)
+			}
+		}
+
+		_, err = s.conn.Do(
+			tarantool.NewCallRequest("league_change").
+				Args([]interface{}{map[string]interface{}{
+					"users": usersToLUp,
+					"up":    true,
+				}}),
+		).GetResponse()
+		if err != nil {
+			return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		}
+
+		usersToLDown := make([]string, 0, league.UpCnt)
+		if league.StayCnt != 0 && len(leagueUsers[league.Id])-league.UpCnt > league.StayCnt {
+			for _, user := range leagueUsers[league.Id][league.UpCnt+league.StayCnt:] {
+				usersToLDown = append(usersToLDown, user)
+			}
+			_, err = s.conn.Do(
+				tarantool.NewCallRequest("league_change").
+					Args([]interface{}{map[string]interface{}{
+						"users": usersToLDown,
+						"up":    false,
+					}}),
+			).GetResponse()
+			if err != nil {
+				return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+			}
+		}
+	}
+
+	return nil
 }

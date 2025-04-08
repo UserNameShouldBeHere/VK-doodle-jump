@@ -73,7 +73,8 @@ func main() {
 	}
 	sugarLogger := logger.Sugar()
 
-	usersStorage, err := storage.NewUsersStorage(conn)
+	storageCtx, storageCancel := context.WithCancel(context.Background())
+	usersStorage, err := storage.NewUsersStorage(storageCtx, conn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -112,6 +113,7 @@ func main() {
 		if err := server.Shutdown(ctx); err != nil {
 			log.Fatalf("Failed to stop server gracefully: %v", err)
 		}
+		storageCancel()
 	}()
 
 	log.Printf("Starting server at http://%s:%d", host, port)
