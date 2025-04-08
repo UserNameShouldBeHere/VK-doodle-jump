@@ -23,12 +23,14 @@ import (
 
 func main() {
 	var (
-		host string
-		port int
+		host                 string
+		port                 int
+		leagueUpdateInterval int
 	)
 
 	flag.StringVar(&host, "h", "localhost", "server host")
 	flag.IntVar(&port, "p", 80, "server ip")
+	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
 	flag.Parse()
 
 	// pool, err := pgxpool.New(context.Background(), fmt.Sprintf(
@@ -74,7 +76,7 @@ func main() {
 	sugarLogger := logger.Sugar()
 
 	storageCtx, storageCancel := context.WithCancel(context.Background())
-	usersStorage, err := storage.NewUsersStorage(storageCtx, conn)
+	usersStorage, err := storage.NewUsersStorage(storageCtx, conn, leagueUpdateInterval)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,8 +94,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init profile handler: %v", err)
 	}
+	middlewareHandler, err := handlers.NewMiddlewareHandler(fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		log.Fatalf("Failed to init middleware handler: %v", err)
+	}
 
-	router := initRouter(gameHandler, profileHandler)
+	router := initRouter(gameHandler, profileHandler, middlewareHandler)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", port),
@@ -108,12 +114,12 @@ func main() {
 		sigInt := make(chan os.Signal, 1)
 		signal.Notify(sigInt, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 		<-sigInt
+		storageCancel()
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 		if err := server.Shutdown(ctx); err != nil {
 			log.Fatalf("Failed to stop server gracefully: %v", err)
 		}
-		storageCancel()
 	}()
 
 	log.Printf("Starting server at http://%s:%d", host, port)
@@ -127,8 +133,13 @@ func main() {
 	log.Println("Server stopped")
 }
 
-func initRouter(gameHandler *handlers.GameHandler, profileHandler *handlers.ProfileHandler) *mux.Router {
+func initRouter(
+	gameHandler *handlers.GameHandler,
+	profileHandler *handlers.ProfileHandler,
+	middlewareHandler *handlers.MiddlewareHandler) *mux.Router {
+
 	router := mux.NewRouter()
+	router.Use(middlewareHandler.Cors)
 
 	apiRouter := router.PathPrefix("/api/v1").Subrouter()
 	profileRouter := apiRouter.PathPrefix("/profile").Subrouter()

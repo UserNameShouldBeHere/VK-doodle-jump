@@ -13,12 +13,14 @@ import (
 )
 
 type UsersStorage struct {
-	conn *tarantool.Connection
+	conn                 *tarantool.Connection
+	leagueUpdateInterval int
 }
 
-func NewUsersStorage(ctx context.Context, conn *tarantool.Connection) (*UsersStorage, error) {
+func NewUsersStorage(ctx context.Context, conn *tarantool.Connection, leagueUpdateInterval int) (*UsersStorage, error) {
 	storage := &UsersStorage{
-		conn: conn,
+		leagueUpdateInterval: leagueUpdateInterval,
+		conn:                 conn,
 	}
 
 	go func() {
@@ -26,7 +28,7 @@ func NewUsersStorage(ctx context.Context, conn *tarantool.Connection) (*UsersSto
 
 		for {
 			select {
-			case <-time.After(time.Second * 10):
+			case <-time.After(time.Second * time.Duration(storage.leagueUpdateInterval)):
 				err := storage.updateLeagues()
 				if err != nil {
 					fmt.Println(err)
