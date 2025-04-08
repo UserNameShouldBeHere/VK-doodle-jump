@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
@@ -21,7 +22,7 @@ func NewUsersStorage(ctx context.Context, conn *tarantool.Connection) (*UsersSto
 	}
 
 	go func() {
-		<-time.After(time.Second * 10)
+		// <-time.After(time.Second * 10)
 
 		for {
 			select {
@@ -153,49 +154,59 @@ func (s *UsersStorage) updateLeagues() error {
 		}
 
 		for _, user := range users[0] {
-			leagueUsers[league.Id] = append(leagueUsers[league.Id], user.Name)
+			leagueUsers[len(settings[0])-league.Id-1] = append(leagueUsers[len(settings[0])-league.Id-1], user.Name)
 		}
 	}
 
-	for _, league := range settings[0] {
-		usersToLUp := make([]string, 0, league.UpCnt)
-		if len(leagueUsers[league.Id]) < league.UpCnt {
-			for _, user := range leagueUsers[league.Id] {
-				usersToLUp = append(usersToLUp, user)
-			}
-		} else {
-			for _, user := range leagueUsers[league.Id][0:league.UpCnt] {
-				usersToLUp = append(usersToLUp, user)
-			}
-		}
+	fmt.Println(leagueUsers)
 
-		_, err = s.conn.Do(
-			tarantool.NewCallRequest("league_change").
-				Args([]interface{}{map[string]interface{}{
-					"users": usersToLUp,
-					"up":    true,
-				}}),
-		).GetResponse()
-		if err != nil {
-			return fmt.Errorf("(tarantool.updateLeagues): %w", err)
-		}
+	upUsers := make([]string, 0)
+	downUsers := make([]string, 0)
+	for i, league := range leagueUsers[1:] {
+		cnt := math.Min(float64(len(league)), float64(settings[0][i+1].UpCnt))
+		users := league[0:int(cnt)]
+		leagueUsers[i] = append(users, leagueUsers[i]...)
+		leagueUsers[i+1] = leagueUsers[i+1][int(cnt):]
 
-		usersToLDown := make([]string, 0, league.UpCnt)
-		if league.StayCnt != 0 && len(leagueUsers[league.Id])-league.UpCnt > league.StayCnt {
-			for _, user := range leagueUsers[league.Id][league.UpCnt+league.StayCnt:] {
-				usersToLDown = append(usersToLDown, user)
+		fmt.Printf("Up(%d): %v\n", 3-i, users)
+
+		upUsers = append(upUsers, users...)
+
+		if settings[0][i].StayCnt < len(leagueUsers[i]) {
+			cnt := len(leagueUsers[i]) - settings[0][i].StayCnt
+			if len(leagueUsers[i])-cnt < len(users) {
+				users = leagueUsers[i][len(users):]
+			} else {
+				users = leagueUsers[i][len(leagueUsers[i])-cnt:]
 			}
-			_, err = s.conn.Do(
-				tarantool.NewCallRequest("league_change").
-					Args([]interface{}{map[string]interface{}{
-						"users": usersToLDown,
-						"up":    false,
-					}}),
-			).GetResponse()
-			if err != nil {
-				return fmt.Errorf("(tarantool.updateLeagues): %w", err)
-			}
+			leagueUsers[i+1] = append(users, leagueUsers[i+1]...)
+
+			fmt.Printf("Down(%d): %v\n", 3-i, users)
+
+			downUsers = append(downUsers, users...)
 		}
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewCallRequest("league_change").
+			Args([]interface{}{map[string]interface{}{
+				"users": upUsers,
+				"up":    true,
+			}}),
+	).GetResponse()
+	if err != nil {
+		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewCallRequest("league_change").
+			Args([]interface{}{map[string]interface{}{
+				"users": downUsers,
+				"up":    false,
+			}}),
+	).GetResponse()
+	if err != nil {
+		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
 	}
 
 	return nil
