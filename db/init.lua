@@ -1,6 +1,11 @@
+#!/usr/bin/env tarantool
+
 datetime = require('datetime')
 
-box.cfg{listen = 3301}
+box.cfg{
+    listen = 3301,
+    background = false
+}
 box.schema.user.passwd('pass')
 
 -- ===================================

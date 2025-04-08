@@ -33,21 +33,10 @@ func main() {
 	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
 	flag.Parse()
 
-	// pool, err := pgxpool.New(context.Background(), fmt.Sprintf(
-	// 	"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-	// 	"postgres",
-	// 	"5432",
-	// 	"postgres",
-	// 	"root1234",
-	// 	"vk_games",
-	// ))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	dialer := tarantool.NetDialer{
-		Address:  "127.0.0.1:3301",
+		Address:  "tarantool:3301",
 		User:     "admin",
 		Password: "pass",
 	}

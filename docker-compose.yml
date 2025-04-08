@@ -1,12 +1,11 @@
 version: '3'
 services:
-  postgres:
+  tarantool:
     container_name: db
-    build:
-      dockerfile: ./db/Dockerfile
-    environment:
-      - POSTGRES_PASSWORD=root1234
-      - POSTGRES_USER=postgres
+    image: tarantool/tarantool
+    command: tarantool /usr/local/share/tarantool/init.lua
+    volumes:
+      - ./db:/usr/local/share/tarantool
     networks:
       - app_network
     restart: always
@@ -18,7 +17,7 @@ services:
     ports:
       - 80:80
     depends_on:
-      - postgres
+      - tarantool
     networks:
       - app_network
     restart: always
