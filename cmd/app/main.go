@@ -26,14 +26,14 @@ func main() {
 		backendHost          string
 		frontendHost         string
 		backendPort          int
-		fronendtort          int
+		frontendtort         int
 		leagueUpdateInterval int
 	)
 
 	flag.StringVar(&backendHost, "back-h", "127.0.0.1", "backend host")
-	flag.StringVar(&frontendHost, "front-h", "localhost", "frontend host")
+	flag.StringVar(&frontendHost, "front-h", "127.0.0.1", "frontend host")
 	flag.IntVar(&backendPort, "back-p", 80, "backend port")
-	flag.IntVar(&fronendtort, "front-p", 3000, "frontend port")
+	flag.IntVar(&frontendtort, "front-p", 3000, "frontend port")
 	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
 	flag.Parse()
 
@@ -87,7 +87,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init profile handler: %v", err)
 	}
-	middlewareHandler, err := handlers.NewMiddlewareHandler(fmt.Sprintf("%s:%d", frontendHost, fronendtort), logger.Sugar())
+	middlewareHandler, err := handlers.NewMiddlewareHandler(
+		fmt.Sprintf("%s:%d", frontendHost, frontendtort),
+		logger.Sugar())
 	if err != nil {
 		log.Fatalf("Failed to init middleware handler: %v", err)
 	}
