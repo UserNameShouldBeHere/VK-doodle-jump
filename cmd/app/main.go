@@ -23,13 +23,17 @@ import (
 
 func main() {
 	var (
-		host                 string
-		port                 int
+		backendHost          string
+		frontendHost         string
+		backendPort          int
+		fronendtort          int
 		leagueUpdateInterval int
 	)
 
-	flag.StringVar(&host, "h", "localhost", "server host")
-	flag.IntVar(&port, "p", 80, "server ip")
+	flag.StringVar(&backendHost, "back-h", "127.0.0.1", "backend host")
+	flag.StringVar(&frontendHost, "front-h", "localhost", "frontend host")
+	flag.IntVar(&backendPort, "back-p", 80, "backend port")
+	flag.IntVar(&fronendtort, "front-p", 3000, "frontend port")
 	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
 	flag.Parse()
 
@@ -83,7 +87,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init profile handler: %v", err)
 	}
-	middlewareHandler, err := handlers.NewMiddlewareHandler(fmt.Sprintf("%s:%d", host, port))
+	middlewareHandler, err := handlers.NewMiddlewareHandler(fmt.Sprintf("%s:%d", frontendHost, fronendtort), logger.Sugar())
 	if err != nil {
 		log.Fatalf("Failed to init middleware handler: %v", err)
 	}
@@ -91,7 +95,7 @@ func main() {
 	router := initRouter(gameHandler, profileHandler, middlewareHandler)
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", port),
+		Addr:         fmt.Sprintf(":%d", backendPort),
 		Handler:      router,
 		ReadTimeout:  time.Second * 5,
 		WriteTimeout: time.Second * 5,
@@ -111,7 +115,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Starting server at http://%s:%d", host, port)
+	log.Printf("Starting server at http://%s:%d", backendHost, backendPort)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server stopped with error: %v", err)
@@ -129,14 +133,15 @@ func initRouter(
 
 	router := mux.NewRouter()
 	router.Use(middlewareHandler.Cors)
+	router.Use(middlewareHandler.Panic)
 
 	apiRouter := router.PathPrefix("/api/v1").Subrouter()
 	profileRouter := apiRouter.PathPrefix("/profile").Subrouter()
 	gameRouter := apiRouter.PathPrefix("/game").Subrouter()
 
-	profileRouter.HandleFunc("/{uuid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTION")
+	profileRouter.HandleFunc("/{uuid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 
-	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTION")
+	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")
 
 	return router
 }

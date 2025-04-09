@@ -3,7 +3,6 @@ package tarantool
 import (
 	"context"
 	"fmt"
-	"log"
 	"math"
 	"time"
 
@@ -24,8 +23,6 @@ func NewUsersStorage(ctx context.Context, conn *tarantool.Connection, leagueUpda
 	}
 
 	go func() {
-		// <-time.After(time.Second * 10)
-
 		for {
 			select {
 			case <-time.After(time.Second * time.Duration(storage.leagueUpdateInterval)):
@@ -58,7 +55,7 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
 	}
 
 	var prevScore []int
@@ -77,7 +74,7 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 	}
 
 	if prevScore[0] < newScore {
-		data, err := s.conn.Do(
+		_, err = s.conn.Do(
 			tarantool.NewUpdateRequest("users").
 				Index("name").
 				Key([]interface{}{uuid}).
@@ -89,8 +86,6 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 		if err != nil {
 			return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
 		}
-
-		fmt.Println(data)
 	}
 
 	return nil
@@ -160,8 +155,6 @@ func (s *UsersStorage) updateLeagues() error {
 		}
 	}
 
-	fmt.Println(leagueUsers)
-
 	upUsers := make([]string, 0)
 	downUsers := make([]string, 0)
 	for i, league := range leagueUsers[1:] {
@@ -169,8 +162,6 @@ func (s *UsersStorage) updateLeagues() error {
 		users := league[0:int(cnt)]
 		leagueUsers[i] = append(users, leagueUsers[i]...)
 		leagueUsers[i+1] = leagueUsers[i+1][int(cnt):]
-
-		fmt.Printf("Up(%d): %v\n", 3-i, users)
 
 		upUsers = append(upUsers, users...)
 
@@ -182,8 +173,6 @@ func (s *UsersStorage) updateLeagues() error {
 				users = leagueUsers[i][len(leagueUsers[i])-cnt:]
 			}
 			leagueUsers[i+1] = append(users, leagueUsers[i+1]...)
-
-			fmt.Printf("Down(%d): %v\n", 3-i, users)
 
 			downUsers = append(downUsers, users...)
 		}

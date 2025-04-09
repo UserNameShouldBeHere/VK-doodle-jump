@@ -14,4 +14,4 @@ WORKDIR /src
 
 COPY --from=build /src/app app
 
-CMD ["./app", "-h", "127.0.0.1"]
+CMD ["./app"]

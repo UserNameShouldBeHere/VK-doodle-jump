@@ -88,7 +88,7 @@ box.schema.func.create('league_users_top', {
         function(args)
             local leagues = {}
 
-            for _, league in ipairs(box.space.leagues.index.primary:select({}, {iterator = box.index.LT})) do
+            for _, league in ipairs(box.space.leagues.index.primary:select({}, {iterator = box.index.GT})) do
                 table.insert(leagues, box.tuple.new({league.id, league.name}))
             end
             
