@@ -158,7 +158,7 @@ box.schema.func.create('league_change', {
 -- ===================================
 
 box.schema.space.create('promocodes')
-box.schema.sequence.create('promocodes_id_seq', {min = 0, start = 0})
+box.schema.sequence.create('promocodes_id_seq', {min = 1, start = 1})
 
 box.space.promocodes:format({
     {name = 'id', type = 'unsigned'},
@@ -208,7 +208,7 @@ box.schema.func.create('promocodes_for_admin', {
 -- ===================================
 
 box.schema.space.create('products')
-box.schema.sequence.create('products_id_seq', {min = 0, start = 0})
+box.schema.sequence.create('products_id_seq', {min = 1, start = 1})
 
 box.space.products:format({
     {name = 'id', type = 'unsigned'},
