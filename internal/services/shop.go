@@ -1,0 +1,90 @@
+package services
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	"go.uber.org/zap"
+)
+
+type ShopStorage interface {
+	GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error)
+	AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error
+	UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error
+	GetProducts(ctx context.Context) ([]domain.ProductAdminData, error)
+	AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error
+	UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error
+}
+
+type ShopService struct {
+	shopStorage ShopStorage
+	logger      *zap.SugaredLogger
+}
+
+func NewShopService(shopStorage ShopStorage, logger *zap.SugaredLogger) (*ShopService, error) {
+	return &ShopService{
+		shopStorage: shopStorage,
+		logger:      logger,
+	}, nil
+}
+
+func (s *ShopService) GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error) {
+	promocodes, err := s.shopStorage.GetPromocodes(ctx)
+	if err != nil {
+		s.logger.Errorf("failed to get promocodes: %v", err)
+		return nil, fmt.Errorf("(services.GetPromocodes): %w", err)
+	}
+
+	return promocodes, nil
+}
+
+func (s *ShopService) AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
+	err := s.shopStorage.AddPromocode(ctx, newPromocode)
+	if err != nil {
+		s.logger.Errorf("failed to add promocodes: %v", err)
+		return fmt.Errorf("(services.AddPromocode): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
+	err := s.shopStorage.UpdatePromocode(ctx, newPromocode)
+	if err != nil {
+		s.logger.Errorf("failed to update promocodes: %v", err)
+		return fmt.Errorf("(services.UpdatePromocode): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) GetProducts(ctx context.Context) ([]domain.ProductAdminData, error) {
+	products, err := s.shopStorage.GetProducts(ctx)
+	if err != nil {
+		s.logger.Errorf("failed to get products: %v", err)
+		return nil, fmt.Errorf("(services.GetProducts): %w", err)
+	}
+
+	return products, nil
+}
+
+func (s *ShopService) AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
+	err := s.shopStorage.AddProduct(ctx, newProduct)
+	if err != nil {
+		s.logger.Errorf("failed to add product: %v", err)
+		return fmt.Errorf("(services.AddProduct): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
+	err := s.shopStorage.UpdateProduct(ctx, newProduct)
+	if err != nil {
+		s.logger.Errorf("failed to update product: %v", err)
+		return fmt.Errorf("(services.UpdateProduct): %w", err)
+	}
+
+	return nil
+}

@@ -73,8 +73,16 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	shopStorage, err := storage.NewShopStorage(conn)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	usersService, err := services.NewUsersService(usersStorage, sugarLogger)
+	if err != nil {
+		log.Fatal(err)
+	}
+	shopService, err := services.NewShopService(shopStorage, sugarLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -87,6 +95,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init profile handler: %v", err)
 	}
+	shopHandler, err := handlers.NewShopHandler(shopService, sugarLogger)
+	if err != nil {
+		log.Fatalf("Failed to init shop handler: %v", err)
+	}
 	middlewareHandler, err := handlers.NewMiddlewareHandler(
 		fmt.Sprintf("%s:%d", frontendHost, frontendtort),
 		logger.Sugar())
@@ -94,7 +106,7 @@ func main() {
 		log.Fatalf("Failed to init middleware handler: %v", err)
 	}
 
-	router := initRouter(gameHandler, profileHandler, middlewareHandler)
+	router := initRouter(gameHandler, profileHandler, shopHandler, middlewareHandler)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", backendPort),
@@ -131,6 +143,7 @@ func main() {
 func initRouter(
 	gameHandler *handlers.GameHandler,
 	profileHandler *handlers.ProfileHandler,
+	shopHandler *handlers.ShopHandler,
 	middlewareHandler *handlers.MiddlewareHandler) *mux.Router {
 
 	router := mux.NewRouter()
@@ -140,10 +153,18 @@ func initRouter(
 	apiRouter := router.PathPrefix("/api/v1").Subrouter()
 	profileRouter := apiRouter.PathPrefix("/profile").Subrouter()
 	gameRouter := apiRouter.PathPrefix("/game").Subrouter()
+	shopRouter := apiRouter.PathPrefix("/shop").Subrouter()
 
 	profileRouter.HandleFunc("/{uuid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 
 	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")
+
+	shopRouter.HandleFunc("/promocodes", shopHandler.GetPromocodes).Methods("GET", "OPTIONS")
+	shopRouter.HandleFunc("/promocode/add", shopHandler.AddPromocode).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/promocode/update", shopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/products", shopHandler.GetProducts).Methods("GET", "OPTIONS")
+	shopRouter.HandleFunc("/product/add", shopHandler.AddProduct).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/product/update", shopHandler.UpdateProduct).Methods("POST", "OPTIONS")
 
 	return router
 }
