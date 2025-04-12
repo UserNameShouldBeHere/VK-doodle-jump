@@ -162,9 +162,11 @@ func initRouter(
 	shopRouter.HandleFunc("/promocodes", shopHandler.GetPromocodes).Methods("GET", "OPTIONS")
 	shopRouter.HandleFunc("/promocode/add", shopHandler.AddPromocode).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/promocode/update", shopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/promocode/delete", shopHandler.DeletePromocode).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/products", shopHandler.GetProducts).Methods("GET", "OPTIONS")
 	shopRouter.HandleFunc("/product/add", shopHandler.AddProduct).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/product/update", shopHandler.UpdateProduct).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/product/delete", shopHandler.DeleteProduct).Methods("POST", "OPTIONS")
 
 	return router
 }

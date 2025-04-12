@@ -12,9 +12,11 @@ type ShopStorage interface {
 	GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error)
 	AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error
 	UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error
+	DeletePromocode(ctx context.Context, id int) error
 	GetProducts(ctx context.Context) ([]domain.ProductAdminData, error)
 	AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error
 	UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error
+	DeleteProduct(ctx context.Context, id int) error
 }
 
 type ShopService struct {
@@ -42,7 +44,7 @@ func (s *ShopService) GetPromocodes(ctx context.Context) ([]domain.PromocodeAdmi
 func (s *ShopService) AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
 	err := s.shopStorage.AddPromocode(ctx, newPromocode)
 	if err != nil {
-		s.logger.Errorf("failed to add promocodes: %v", err)
+		s.logger.Errorf("failed to add promocode: %v", err)
 		return fmt.Errorf("(services.AddPromocode): %w", err)
 	}
 
@@ -52,8 +54,18 @@ func (s *ShopService) AddPromocode(ctx context.Context, newPromocode domain.Prom
 func (s *ShopService) UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
 	err := s.shopStorage.UpdatePromocode(ctx, newPromocode)
 	if err != nil {
-		s.logger.Errorf("failed to update promocodes: %v", err)
+		s.logger.Errorf("failed to update promocode: %v", err)
 		return fmt.Errorf("(services.UpdatePromocode): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) DeletePromocode(ctx context.Context, id int) error {
+	err := s.shopStorage.DeletePromocode(ctx, id)
+	if err != nil {
+		s.logger.Errorf("failed to delete promocode: %v", err)
+		return fmt.Errorf("(services.DeletePromocode): %w", err)
 	}
 
 	return nil
@@ -84,6 +96,16 @@ func (s *ShopService) UpdateProduct(ctx context.Context, newProduct domain.Produ
 	if err != nil {
 		s.logger.Errorf("failed to update product: %v", err)
 		return fmt.Errorf("(services.UpdateProduct): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) DeleteProduct(ctx context.Context, id int) error {
+	err := s.shopStorage.DeleteProduct(ctx, id)
+	if err != nil {
+		s.logger.Errorf("failed to delete product: %v", err)
+		return fmt.Errorf("(services.DeleteProduct): %w", err)
 	}
 
 	return nil

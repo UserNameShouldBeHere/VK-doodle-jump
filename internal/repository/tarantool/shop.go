@@ -145,6 +145,20 @@ func (s *ShopStorage) UpdatePromocode(ctx context.Context, newPromocode domain.P
 	return nil
 }
 
+func (s *ShopStorage) DeletePromocode(ctx context.Context, id int) error {
+	_, err := s.conn.Do(
+		tarantool.NewDeleteRequest("promocodes").
+			Index("primary").
+			Key([]interface{}{id}),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.DeletePromocode): %w", err)
+	}
+
+	return nil
+}
+
 func (s *ShopStorage) GetProducts(ctx context.Context) ([]domain.ProductAdminData, error) {
 	resp, err := s.conn.Do(
 		tarantool.NewCallRequest("products_for_admin")).GetResponse()
@@ -217,6 +231,20 @@ func (s *ShopStorage) UpdateProduct(ctx context.Context, newProduct domain.Produ
 
 	if err != nil {
 		return fmt.Errorf("(tarantool.UpdateProduct): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopStorage) DeleteProduct(ctx context.Context, id int) error {
+	_, err := s.conn.Do(
+		tarantool.NewDeleteRequest("products").
+			Index("primary").
+			Key([]interface{}{id}),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.DeleteProduct): %w", err)
 	}
 
 	return nil
