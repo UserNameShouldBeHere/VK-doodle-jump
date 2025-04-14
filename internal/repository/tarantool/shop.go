@@ -181,7 +181,7 @@ func (s *ShopStorage) AddProduct(ctx context.Context, newProduct domain.ProductA
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddPromocode): %w", err)
+		return fmt.Errorf("(tarantool.AddProduct): %w", err)
 	}
 
 	_, err = s.conn.Do(
@@ -199,7 +199,7 @@ func (s *ShopStorage) AddProduct(ctx context.Context, newProduct domain.ProductA
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddPromocode): %w", err)
+		return fmt.Errorf("(tarantool.AddProduct): %w", err)
 	}
 
 	return nil
@@ -245,6 +245,93 @@ func (s *ShopStorage) DeleteProduct(ctx context.Context, id int) error {
 
 	if err != nil {
 		return fmt.Errorf("(tarantool.DeleteProduct): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopStorage) GetTasks(ctx context.Context) ([]domain.TaskAdminData, error) {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("tasks_for_admin")).GetResponse()
+	if err != nil {
+		return nil, fmt.Errorf("(tarantool.GetTasks): %w", err)
+	}
+
+	var data [][]domain.TaskAdminData
+	err = resp.DecodeTyped(&data)
+	if err != nil {
+		return nil, fmt.Errorf("(tarantool.GetTasks): %w", err)
+	}
+
+	return data[0], nil
+}
+
+func (s *ShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdminData) error {
+	tm := time.Now()
+
+	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
+	datetime, err := datetime.MakeDatetime(tm)
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddTask): %w", err)
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewInsertRequest("tasks").
+			Tuple([]interface{}{
+				nil,
+				newTask.Name,
+				newTask.Description,
+				newTask.Reward,
+				newTask.Token,
+				datetime,
+			}),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddTask): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error {
+	tm := time.Now()
+
+	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
+	datetime, err := datetime.MakeDatetime(tm)
+	if err != nil {
+		return fmt.Errorf("(tarantool.UpdateProduct): %w", err)
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewUpdateRequest("tasks").
+			Index("primary").
+			Key([]interface{}{newTask.Id}).
+			Operations(tarantool.NewOperations().
+				Assign(1, newTask.Name).
+				Assign(2, newTask.Description).
+				Assign(3, newTask.Reward).
+				Assign(4, newTask.Token).
+				Assign(5, datetime),
+			),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.UpdateTask): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopStorage) DeleteTask(ctx context.Context, id int) error {
+	_, err := s.conn.Do(
+		tarantool.NewDeleteRequest("tasks").
+			Index("primary").
+			Key([]interface{}{id}),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.DeleteTask): %w", err)
 	}
 
 	return nil

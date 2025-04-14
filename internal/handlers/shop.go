@@ -19,6 +19,10 @@ type ShopService interface {
 	AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error
 	UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error
 	DeleteProduct(ctx context.Context, id int) error
+	GetTasks(ctx context.Context) ([]domain.TaskAdminData, error)
+	AddTask(ctx context.Context, newTask domain.TaskAdminData) error
+	UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error
+	DeleteTask(ctx context.Context, id int) error
 }
 
 type ShopHandler struct {
@@ -386,6 +390,191 @@ func (h *ShopHandler) DeleteProduct(w http.ResponseWriter, req *http.Request) {
 	}
 
 	err = h.shopService.DeleteProduct(ctx, reqData.Id)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type TasksAdminResponse struct {
+	Tasks []domain.TaskAdminData `json:"tasks"`
+}
+
+func (h *ShopHandler) GetTasks(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	tasks, err := h.shopService.GetTasks(ctx)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data: TasksAdminResponse{
+			Tasks: tasks,
+		},
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type UpdateTaskRequest struct {
+	Task domain.TaskAdminData `json:"task"`
+}
+
+func (h *ShopHandler) AddTask(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("unable to decode http request: %v", err)
+		}
+		return
+	}
+
+	var reqData UpdateTaskRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.AddTask(ctx, reqData.Task)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *ShopHandler) UpdateTask(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("unable to decode http request: %v", err)
+		}
+		return
+	}
+
+	var reqData UpdateTaskRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.UpdateTask(ctx, reqData.Task)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *ShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("unable to decode http request: %v", err)
+		}
+		return
+	}
+
+	var reqData IdRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.DeleteTask(ctx, reqData.Id)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,

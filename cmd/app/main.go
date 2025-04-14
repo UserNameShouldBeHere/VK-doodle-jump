@@ -167,6 +167,10 @@ func initRouter(
 	shopRouter.HandleFunc("/product/add", shopHandler.AddProduct).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/product/update", shopHandler.UpdateProduct).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/product/delete", shopHandler.DeleteProduct).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/tasks", shopHandler.GetTasks).Methods("GET", "OPTIONS")
+	shopRouter.HandleFunc("/task/add", shopHandler.AddTask).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/task/update", shopHandler.UpdateTask).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/task/delete", shopHandler.DeleteTask).Methods("POST", "OPTIONS")
 
 	return router
 }

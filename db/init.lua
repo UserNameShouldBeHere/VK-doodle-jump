@@ -248,3 +248,43 @@ box.schema.func.create('products_for_admin', {
         end
     ]]
 })
+
+-- ===================================
+
+box.schema.space.create('tasks')
+box.schema.sequence.create('tasks_id_seq', {min = 1, start = 1})
+
+box.space.tasks:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'name', type = 'string'},
+    {name = 'description', type = 'string'},
+    {name = 'reward', type = 'unsigned'},
+    {name = 'token', type = 'string'},
+    {name = 'last_update', type = 'datetime'},
+})
+
+box.space.tasks:create_index('primary', {sequence = 'tasks_id_seq', type = 'tree', parts = {'id'}})
+box.space.tasks:create_index('last_update', {type = 'tree', parts = {
+    {'last_update', sort_order = 'desc'}
+}})
+
+box.schema.func.drop('tasks_for_admin', {if_exists = true})
+box.schema.func.create('tasks_for_admin', {
+    body = [[
+        function()
+            local tasks = {}
+
+            for _, task in ipairs(box.space.tasks.index.last_update:select({})) do
+                table.insert(tasks, box.tuple.new({
+                    task.id,
+                    task.name,
+                    task.description,
+                    task.reward,
+                    task.token
+                }))
+            end
+
+            return tasks
+        end
+    ]]
+})

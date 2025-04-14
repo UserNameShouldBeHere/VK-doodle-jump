@@ -17,6 +17,10 @@ type ShopStorage interface {
 	AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error
 	UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error
 	DeleteProduct(ctx context.Context, id int) error
+	GetTasks(ctx context.Context) ([]domain.TaskAdminData, error)
+	AddTask(ctx context.Context, newTask domain.TaskAdminData) error
+	UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error
+	DeleteTask(ctx context.Context, id int) error
 }
 
 type ShopService struct {
@@ -106,6 +110,46 @@ func (s *ShopService) DeleteProduct(ctx context.Context, id int) error {
 	if err != nil {
 		s.logger.Errorf("failed to delete product: %v", err)
 		return fmt.Errorf("(services.DeleteProduct): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) GetTasks(ctx context.Context) ([]domain.TaskAdminData, error) {
+	tasks, err := s.shopStorage.GetTasks(ctx)
+	if err != nil {
+		s.logger.Errorf("failed to get tasks: %v", err)
+		return nil, fmt.Errorf("(services.GetTasks): %w", err)
+	}
+
+	return tasks, nil
+}
+
+func (s *ShopService) AddTask(ctx context.Context, newTask domain.TaskAdminData) error {
+	err := s.shopStorage.AddTask(ctx, newTask)
+	if err != nil {
+		s.logger.Errorf("failed to add task: %v", err)
+		return fmt.Errorf("(services.AddTask): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error {
+	err := s.shopStorage.UpdateTask(ctx, newTask)
+	if err != nil {
+		s.logger.Errorf("failed to update task: %v", err)
+		return fmt.Errorf("(services.UpdateTask): %w", err)
+	}
+
+	return nil
+}
+
+func (s *ShopService) DeleteTask(ctx context.Context, id int) error {
+	err := s.shopStorage.DeleteTask(ctx, id)
+	if err != nil {
+		s.logger.Errorf("failed to delete task: %v", err)
+		return fmt.Errorf("(services.DeleteTask): %w", err)
 	}
 
 	return nil
