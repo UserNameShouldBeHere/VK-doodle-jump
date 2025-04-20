@@ -154,3 +154,137 @@ box.schema.func.create('league_change', {
         end
     ]]
 })
+
+-- ===================================
+
+box.schema.space.create('promocodes')
+box.schema.sequence.create('promocodes_id_seq', {min = 1, start = 1})
+
+box.space.promocodes:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'name', type = 'string'},
+    {name = 'company', type = 'string'},
+    {name = 'logo_link', type = 'string'},
+    {name = 'description', type = 'string'},
+    {name = 'price', type = 'unsigned'},
+    {name = 'count', type = 'unsigned'},
+    {name = 'code', type = 'string'},
+    {name = 'activation_link', type = 'string'},
+    {name = 'active_to', type = 'datetime'},
+    {name = 'last_update', type = 'datetime'},
+})
+
+box.space.promocodes:create_index('primary', {sequence = 'promocodes_id_seq', type = 'tree', parts = {'id'}})
+box.space.promocodes:create_index('last_update', {type = 'tree', parts = {
+    {'last_update', sort_order = 'desc'}
+}})
+
+box.schema.func.drop('promocodes_for_admin', {if_exists = true})
+box.schema.func.create('promocodes_for_admin', {
+    body = [[
+        function()
+            local promocodes = {}
+
+            for _, promocode in ipairs(box.space.promocodes.index.last_update:select({})) do
+                table.insert(promocodes, box.tuple.new({
+                    promocode.id,
+                    promocode.name,
+                    promocode.company,
+                    promocode.logo_link,
+                    promocode.description,
+                    promocode.price,
+                    promocode.count,
+                    promocode.code,
+                    promocode.activation_link,
+                    promocode.active_to
+                }))
+            end
+
+            return promocodes
+        end
+    ]]
+})
+
+-- ===================================
+
+box.schema.space.create('products')
+box.schema.sequence.create('products_id_seq', {min = 1, start = 1})
+
+box.space.products:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'name', type = 'string'},
+    {name = 'photo_link', type = 'string'},
+    {name = 'description', type = 'string'},
+    {name = 'price', type = 'unsigned'},
+    {name = 'count', type = 'unsigned'},
+    {name = 'activation_link', type = 'string'},
+    {name = 'last_update', type = 'datetime'},
+})
+
+box.space.products:create_index('primary', {sequence = 'products_id_seq', type = 'tree', parts = {'id'}})
+box.space.products:create_index('last_update', {type = 'tree', parts = {
+    {'last_update', sort_order = 'desc'}
+}})
+
+box.schema.func.drop('products_for_admin', {if_exists = true})
+box.schema.func.create('products_for_admin', {
+    body = [[
+        function()
+            local products = {}
+
+            for _, product in ipairs(box.space.products.index.last_update:select({})) do
+                table.insert(products, box.tuple.new({
+                    product.id,
+                    product.name,
+                    product.photo_link,
+                    product.description,
+                    product.price,
+                    product.count,
+                    product.activation_link
+                }))
+            end
+
+            return products
+        end
+    ]]
+})
+
+-- ===================================
+
+box.schema.space.create('tasks')
+box.schema.sequence.create('tasks_id_seq', {min = 1, start = 1})
+
+box.space.tasks:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'name', type = 'string'},
+    {name = 'description', type = 'string'},
+    {name = 'reward', type = 'unsigned'},
+    {name = 'token', type = 'string'},
+    {name = 'last_update', type = 'datetime'},
+})
+
+box.space.tasks:create_index('primary', {sequence = 'tasks_id_seq', type = 'tree', parts = {'id'}})
+box.space.tasks:create_index('last_update', {type = 'tree', parts = {
+    {'last_update', sort_order = 'desc'}
+}})
+
+box.schema.func.drop('tasks_for_admin', {if_exists = true})
+box.schema.func.create('tasks_for_admin', {
+    body = [[
+        function()
+            local tasks = {}
+
+            for _, task in ipairs(box.space.tasks.index.last_update:select({})) do
+                table.insert(tasks, box.tuple.new({
+                    task.id,
+                    task.name,
+                    task.description,
+                    task.reward,
+                    task.token
+                }))
+            end
+
+            return tasks
+        end
+    ]]
+})

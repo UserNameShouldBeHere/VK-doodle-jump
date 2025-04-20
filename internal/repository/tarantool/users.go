@@ -44,7 +44,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 		tarantool.NewCallRequest("user_score").
 			Args([]interface{}{map[string]interface{}{
 				"name": uuid,
-			}}),
+			}}).
+			Context(ctx),
 	).GetResponse()
 	if err != nil {
 		return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
@@ -63,7 +64,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 	if err != nil {
 		_, err = s.conn.Do(
 			tarantool.NewInsertRequest("users").
-				Tuple([]interface{}{uuid, 0, newScore, datetime}),
+				Tuple([]interface{}{uuid, 0, newScore, datetime}).
+				Context(ctx),
 		).Get()
 
 		if err != nil {
@@ -80,7 +82,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 				Key([]interface{}{uuid}).
 				Operations(tarantool.NewOperations().
 					Assign(2, newScore).
-					Assign(3, datetime)),
+					Assign(3, datetime)).
+				Context(ctx),
 		).Get()
 
 		if err != nil {
@@ -96,7 +99,8 @@ func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.Lea
 		tarantool.NewCallRequest("league_users_top").
 			Args([]interface{}{map[string]interface{}{
 				"limit": count,
-			}}),
+			}}).
+			Context(ctx),
 	).GetResponse()
 	if err != nil {
 		return nil, fmt.Errorf("(tarantool.GetTopUsers): %w", err)
