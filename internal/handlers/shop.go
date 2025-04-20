@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type ShopService interface {
+type AdminShopService interface {
 	GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error)
 	AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error
 	UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error
@@ -25,13 +25,13 @@ type ShopService interface {
 	DeleteTask(ctx context.Context, id int) error
 }
 
-type ShopHandler struct {
-	shopService ShopService
+type AdminShopHandler struct {
+	shopService AdminShopService
 	logger      *zap.SugaredLogger
 }
 
-func NewShopHandler(shopService ShopService, logger *zap.SugaredLogger) (*ShopHandler, error) {
-	return &ShopHandler{
+func NewShopHandler(shopService AdminShopService, logger *zap.SugaredLogger) (*AdminShopHandler, error) {
+	return &AdminShopHandler{
 		shopService: shopService,
 		logger:      logger,
 	}, nil
@@ -41,7 +41,7 @@ type PromocodesAdminResponse struct {
 	Promocodes []domain.PromocodeAdminData `json:"promocodes"`
 }
 
-func (h *ShopHandler) GetPromocodes(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) GetPromocodes(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	promocodes, err := h.shopService.GetPromocodes(ctx)
@@ -72,7 +72,7 @@ type UpdatePromocodeRequest struct {
 	Promocode domain.PromocodeAdminData `json:"promocode"`
 }
 
-func (h *ShopHandler) AddPromocode(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) AddPromocode(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -122,7 +122,7 @@ func (h *ShopHandler) AddPromocode(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *ShopHandler) UpdatePromocode(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) UpdatePromocode(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -176,7 +176,7 @@ type IdRequest struct {
 	Id int `json:"id"`
 }
 
-func (h *ShopHandler) DeletePromocode(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) DeletePromocode(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -230,7 +230,7 @@ type ProductsAdminResponse struct {
 	Products []domain.ProductAdminData `json:"products"`
 }
 
-func (h *ShopHandler) GetProducts(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) GetProducts(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	products, err := h.shopService.GetProducts(ctx)
@@ -261,7 +261,7 @@ type UpdateProductRequest struct {
 	Product domain.ProductAdminData `json:"product"`
 }
 
-func (h *ShopHandler) AddProduct(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) AddProduct(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -311,7 +311,7 @@ func (h *ShopHandler) AddProduct(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *ShopHandler) UpdateProduct(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -361,7 +361,7 @@ func (h *ShopHandler) UpdateProduct(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *ShopHandler) DeleteProduct(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) DeleteProduct(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -415,7 +415,7 @@ type TasksAdminResponse struct {
 	Tasks []domain.TaskAdminData `json:"tasks"`
 }
 
-func (h *ShopHandler) GetTasks(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) GetTasks(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	tasks, err := h.shopService.GetTasks(ctx)
@@ -446,7 +446,7 @@ type UpdateTaskRequest struct {
 	Task domain.TaskAdminData `json:"task"`
 }
 
-func (h *ShopHandler) AddTask(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) AddTask(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -496,7 +496,7 @@ func (h *ShopHandler) AddTask(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *ShopHandler) UpdateTask(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) UpdateTask(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)
@@ -546,7 +546,7 @@ func (h *ShopHandler) UpdateTask(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *ShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) {
+func (h *AdminShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
 	body, err := io.ReadAll(req.Body)

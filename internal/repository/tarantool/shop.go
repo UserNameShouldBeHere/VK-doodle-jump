@@ -11,12 +11,12 @@ import (
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
 )
 
-type ShopStorage struct {
+type AdminShopStorage struct {
 	conn *tarantool.Connection
 }
 
-func NewShopStorage(conn *tarantool.Connection) (*ShopStorage, error) {
-	storage := &ShopStorage{
+func NewAdminShopStorage(conn *tarantool.Connection) (*AdminShopStorage, error) {
+	storage := &AdminShopStorage{
 		conn: conn,
 	}
 
@@ -36,9 +36,11 @@ type PromocodeAdminDataT struct {
 	ActiveTo       datetime.Datetime
 }
 
-func (s *ShopStorage) GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error) {
+func (s *AdminShopStorage) GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error) {
 	resp, err := s.conn.Do(
-		tarantool.NewCallRequest("promocodes_for_admin")).GetResponse()
+		tarantool.NewCallRequest("promocodes_for_admin").
+			Context(ctx),
+	).GetResponse()
 	if err != nil {
 		return nil, fmt.Errorf("(tarantool.GetPromocodes): %w", err)
 	}
@@ -68,7 +70,7 @@ func (s *ShopStorage) GetPromocodes(ctx context.Context) ([]domain.PromocodeAdmi
 	return promocodes, nil
 }
 
-func (s *ShopStorage) AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
+func (s *AdminShopStorage) AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
 	tm := time.Now()
 
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
@@ -96,7 +98,8 @@ func (s *ShopStorage) AddPromocode(ctx context.Context, newPromocode domain.Prom
 				newPromocode.ActivationLink,
 				activeTo,
 				datetime,
-			}),
+			}).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -106,7 +109,7 @@ func (s *ShopStorage) AddPromocode(ctx context.Context, newPromocode domain.Prom
 	return nil
 }
 
-func (s *ShopStorage) UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
+func (s *AdminShopStorage) UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
 	tm := time.Now()
 
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
@@ -135,7 +138,8 @@ func (s *ShopStorage) UpdatePromocode(ctx context.Context, newPromocode domain.P
 				Assign(8, newPromocode.ActivationLink).
 				Assign(9, activeTo).
 				Assign(10, datetime),
-			),
+			).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -145,11 +149,12 @@ func (s *ShopStorage) UpdatePromocode(ctx context.Context, newPromocode domain.P
 	return nil
 }
 
-func (s *ShopStorage) DeletePromocode(ctx context.Context, id int) error {
+func (s *AdminShopStorage) DeletePromocode(ctx context.Context, id int) error {
 	_, err := s.conn.Do(
 		tarantool.NewDeleteRequest("promocodes").
 			Index("primary").
-			Key([]interface{}{id}),
+			Key([]interface{}{id}).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -159,9 +164,11 @@ func (s *ShopStorage) DeletePromocode(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *ShopStorage) GetProducts(ctx context.Context) ([]domain.ProductAdminData, error) {
+func (s *AdminShopStorage) GetProducts(ctx context.Context) ([]domain.ProductAdminData, error) {
 	resp, err := s.conn.Do(
-		tarantool.NewCallRequest("products_for_admin")).GetResponse()
+		tarantool.NewCallRequest("products_for_admin").
+			Context(ctx),
+	).GetResponse()
 	if err != nil {
 		return nil, fmt.Errorf("(tarantool.GetProducts): %w", err)
 	}
@@ -175,7 +182,7 @@ func (s *ShopStorage) GetProducts(ctx context.Context) ([]domain.ProductAdminDat
 	return data[0], nil
 }
 
-func (s *ShopStorage) AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
+func (s *AdminShopStorage) AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
 	tm := time.Now()
 
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
@@ -195,7 +202,8 @@ func (s *ShopStorage) AddProduct(ctx context.Context, newProduct domain.ProductA
 				newProduct.Count,
 				newProduct.ActivationLink,
 				datetime,
-			}),
+			}).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -205,7 +213,7 @@ func (s *ShopStorage) AddProduct(ctx context.Context, newProduct domain.ProductA
 	return nil
 }
 
-func (s *ShopStorage) UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
+func (s *AdminShopStorage) UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
 	tm := time.Now()
 
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
@@ -226,7 +234,8 @@ func (s *ShopStorage) UpdateProduct(ctx context.Context, newProduct domain.Produ
 				Assign(5, newProduct.Count).
 				Assign(6, newProduct.ActivationLink).
 				Assign(7, datetime),
-			),
+			).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -236,11 +245,12 @@ func (s *ShopStorage) UpdateProduct(ctx context.Context, newProduct domain.Produ
 	return nil
 }
 
-func (s *ShopStorage) DeleteProduct(ctx context.Context, id int) error {
+func (s *AdminShopStorage) DeleteProduct(ctx context.Context, id int) error {
 	_, err := s.conn.Do(
 		tarantool.NewDeleteRequest("products").
 			Index("primary").
-			Key([]interface{}{id}),
+			Key([]interface{}{id}).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -250,9 +260,11 @@ func (s *ShopStorage) DeleteProduct(ctx context.Context, id int) error {
 	return nil
 }
 
-func (s *ShopStorage) GetTasks(ctx context.Context) ([]domain.TaskAdminData, error) {
+func (s *AdminShopStorage) GetTasks(ctx context.Context) ([]domain.TaskAdminData, error) {
 	resp, err := s.conn.Do(
-		tarantool.NewCallRequest("tasks_for_admin")).GetResponse()
+		tarantool.NewCallRequest("tasks_for_admin").
+			Context(ctx),
+	).GetResponse()
 	if err != nil {
 		return nil, fmt.Errorf("(tarantool.GetTasks): %w", err)
 	}
@@ -266,7 +278,7 @@ func (s *ShopStorage) GetTasks(ctx context.Context) ([]domain.TaskAdminData, err
 	return data[0], nil
 }
 
-func (s *ShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdminData) error {
+func (s *AdminShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdminData) error {
 	tm := time.Now()
 
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
@@ -284,7 +296,8 @@ func (s *ShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdminData)
 				newTask.Reward,
 				newTask.Token,
 				datetime,
-			}),
+			}).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -294,7 +307,7 @@ func (s *ShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdminData)
 	return nil
 }
 
-func (s *ShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error {
+func (s *AdminShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error {
 	tm := time.Now()
 
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
@@ -311,9 +324,9 @@ func (s *ShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAdminDa
 				Assign(1, newTask.Name).
 				Assign(2, newTask.Description).
 				Assign(3, newTask.Reward).
-				Assign(4, newTask.Token).
 				Assign(5, datetime),
-			),
+			).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
@@ -323,11 +336,12 @@ func (s *ShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAdminDa
 	return nil
 }
 
-func (s *ShopStorage) DeleteTask(ctx context.Context, id int) error {
+func (s *AdminShopStorage) DeleteTask(ctx context.Context, id int) error {
 	_, err := s.conn.Do(
 		tarantool.NewDeleteRequest("tasks").
 			Index("primary").
-			Key([]interface{}{id}),
+			Key([]interface{}{id}).
+			Context(ctx),
 	).Get()
 
 	if err != nil {
