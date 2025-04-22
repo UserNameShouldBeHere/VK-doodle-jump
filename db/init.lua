@@ -48,12 +48,18 @@ box.schema.func.create('leagues_settings', {
 box.schema.space.create('users')
 
 box.space.users:format({
+    {name = 'vkid', type = 'unsigned'},
     {name = 'name', type = 'string'},
+    {name = 'avatar', type = 'string'},
+    {name = 'access_token', type = 'string'},
+    {name = 'access_update', type = 'datetime'},
+
     {name = 'league', type = 'unsigned', foreign_key = {space = 'leagues', field = 'id'}},
     {name = 'max_score', type = 'unsigned'},
     {name = 'last_update', type = 'datetime'},
 })
 
+box.space.users:create_index('primary', {type = 'tree', parts = {'vkid'}})
 box.space.users:create_index('name', {type = 'tree', parts = {'name'}})
 box.space.users:create_index('max_score', {type = 'tree', unique = false, parts = {'max_score'}})
 box.space.users:create_index('score_update', {type = 'tree', parts = {
@@ -65,6 +71,66 @@ box.space.users:create_index('league_score_update', {type = 'tree', parts = {
     {'max_score', sort_order = 'desc'},
     {'last_update', sort_order = 'asc'}
 }})
+
+box.schema.func.drop('user_header', {if_exists = true})
+box.schema.func.create('user_header', {
+    body = [[
+        function(args)
+            user = box.space.users.index.primary:select({args.vkid})[1]
+
+            return box.tuple.new({user.vkid, user.name, user.avatar})
+        end
+    ]]
+})
+
+box.schema.func.drop('has_user', {if_exists = true})
+box.schema.func.create('has_user', {
+    body = [[
+        function(args)
+            user = box.space.users.index.primary:select({args.vkid})
+
+            if (user[1] == nil) then
+                return false
+            end
+
+            return true
+        end
+    ]]
+})
+
+box.schema.func.drop('check_user_token', {if_exists = true})
+box.schema.func.create('check_user_token', {
+    body = [[
+        function(args)
+            user = box.space.users.index.primary:select({args.vkid})
+
+            if (user[1].access_token ~= args.token) then
+                return false
+            end
+
+            return true
+        end
+    ]]
+})
+
+box.schema.func.drop('check_user_access', {if_exists = true})
+box.schema.func.create('check_user_access', {
+    body = [[
+        function(args)
+            user = box.space.users.index.primary:select({args.vkid})
+
+            if (user[1].access_token ~= args.token) then
+                return false
+            end
+
+            if (user[1].access_update > datetime.now()) then
+                return true
+            else
+                return false
+            end
+        end
+    ]]
+})
 
 box.schema.func.drop('users_top', {if_exists = true})
 box.schema.func.create('users_top', {
@@ -144,11 +210,11 @@ box.schema.func.create('league_change', {
 
             if (up) then
                 for _, user in ipairs(users) do
-                    box.space.users.index.name:update(user, {{'+', 2, 1}})
+                    box.space.users.index.name:update(user, {{'+', 6, 1}})
                 end
             else
                 for _, user in ipairs(users) do
-                    box.space.users.index.name:update(user, {{'-', 2, 1}})
+                    box.space.users.index.name:update(user, {{'-', 6, 1}})
                 end
             end
         end

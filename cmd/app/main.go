@@ -77,12 +77,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	authStorage, err := storage.NewAuthStorage(conn)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	usersService, err := services.NewUsersService(usersStorage, sugarLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
 	adminShopService, err := services.NewAdminShopService(adminShopStorage, sugarLogger)
+	if err != nil {
+		log.Fatal(err)
+	}
+	authService, err := services.NewAuthService(authStorage, sugarLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -99,6 +107,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init shop handler: %v", err)
 	}
+	authHandler, err := handlers.NewAuthHandler(authService, sugarLogger)
+	if err != nil {
+		log.Fatalf("Failed to init auth handler: %v", err)
+	}
 	middlewareHandler, err := handlers.NewMiddlewareHandler(
 		fmt.Sprintf("%s:%d", frontendHost, frontendtort),
 		logger.Sugar())
@@ -106,7 +118,7 @@ func main() {
 		log.Fatalf("Failed to init middleware handler: %v", err)
 	}
 
-	router := initRouter(gameHandler, profileHandler, adminShopHandler, middlewareHandler)
+	router := initRouter(authHandler, gameHandler, profileHandler, adminShopHandler, middlewareHandler)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", backendPort),
@@ -141,6 +153,7 @@ func main() {
 }
 
 func initRouter(
+	authHandler *handlers.AuthHandler,
 	gameHandler *handlers.GameHandler,
 	profileHandler *handlers.ProfileHandler,
 	adminShopHandler *handlers.AdminShopHandler,
@@ -151,9 +164,14 @@ func initRouter(
 	router.Use(middlewareHandler.Panic)
 
 	apiRouter := router.PathPrefix("/api/v1").Subrouter()
+	authRouter := apiRouter.PathPrefix("/auth").Subrouter()
 	profileRouter := apiRouter.PathPrefix("/profile").Subrouter()
 	gameRouter := apiRouter.PathPrefix("/game").Subrouter()
 	shopRouter := apiRouter.PathPrefix("/shop").Subrouter()
+
+	authRouter.HandleFunc("/signin", authHandler.SignIn).Methods("POST", "OPTIONS")
+	authRouter.HandleFunc("/check", authHandler.Check).Methods("POST", "OPTIONS")
+	authRouter.HandleFunc("/logout", authHandler.Logout).Methods("POST", "OPTIONS")
 
 	profileRouter.HandleFunc("/{uuid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 

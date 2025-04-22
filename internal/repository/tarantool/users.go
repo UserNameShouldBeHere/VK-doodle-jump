@@ -81,8 +81,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 				Index("name").
 				Key([]interface{}{uuid}).
 				Operations(tarantool.NewOperations().
-					Assign(2, newScore).
-					Assign(3, datetime)).
+					Assign(5, newScore).
+					Assign(6, datetime)).
 				Context(ctx),
 		).Get()
 
