@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	customErrors "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/errors"
 	"github.com/tarantool/go-tarantool/v2"
 	"github.com/tarantool/go-tarantool/v2/datetime"
 )
@@ -39,16 +40,16 @@ func NewUsersStorage(ctx context.Context, conn *tarantool.Connection, leagueUpda
 	return storage, nil
 }
 
-func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newScore int) error {
+func (s *UsersStorage) UpdateUserRating(ctx context.Context, vkid int, newScore int) error {
 	resp, err := s.conn.Do(
 		tarantool.NewCallRequest("user_score").
 			Args([]interface{}{map[string]interface{}{
-				"name": uuid,
+				"vkid": vkid,
 			}}).
 			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
+		return fmt.Errorf("(tarantool.UpdateUserRating) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	tm := time.Now()
@@ -56,38 +57,28 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, uuid string, newSco
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
+		return fmt.Errorf("(tarantool.UpdateUserRating) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	var prevScore []int
 	err = resp.DecodeTyped(&prevScore)
 	if err != nil {
-		_, err = s.conn.Do(
-			tarantool.NewInsertRequest("users").
-				Tuple([]interface{}{uuid, 0, newScore, datetime}).
-				Context(ctx),
-		).Get()
-
-		if err != nil {
-			return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
-		}
-
-		return nil
+		return fmt.Errorf("(tarantool.UpdateUserRating) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	if prevScore[0] < newScore {
 		_, err = s.conn.Do(
 			tarantool.NewUpdateRequest("users").
-				Index("name").
-				Key([]interface{}{uuid}).
+				Index("primary").
+				Key([]interface{}{vkid}).
 				Operations(tarantool.NewOperations().
-					Assign(2, newScore).
-					Assign(3, datetime)).
+					Assign(6, newScore).
+					Assign(7, datetime)).
 				Context(ctx),
 		).Get()
 
 		if err != nil {
-			return fmt.Errorf("(tarantool.UpdateUserRating): %w", err)
+			return fmt.Errorf("(tarantool.UpdateUserRating) %w: %v", customErrors.ErrTarantoolExec, err)
 		}
 	}
 
@@ -103,13 +94,13 @@ func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.Lea
 			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetTopUsers): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetTopUsers) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data [][]domain.LeagueTopUsers
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetTopUsers): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetTopUsers) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil
@@ -121,7 +112,7 @@ func (s *UsersStorage) updateLeagues() error {
 			Args([]interface{}{}),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var settings [][]struct {
@@ -131,7 +122,7 @@ func (s *UsersStorage) updateLeagues() error {
 	}
 	err = resp.DecodeTyped(&settings)
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	leagueUsers := make([][]string, len(settings[0]))
@@ -143,7 +134,7 @@ func (s *UsersStorage) updateLeagues() error {
 				}}),
 		).GetResponse()
 		if err != nil {
-			return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+			return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
 		}
 
 		var users [][]struct {
@@ -151,7 +142,7 @@ func (s *UsersStorage) updateLeagues() error {
 		}
 		err = resp.DecodeTyped(&users)
 		if err != nil {
-			return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+			return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolDecode, err)
 		}
 
 		for _, user := range users[0] {
@@ -190,7 +181,7 @@ func (s *UsersStorage) updateLeagues() error {
 			}}),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	_, err = s.conn.Do(
@@ -201,7 +192,7 @@ func (s *UsersStorage) updateLeagues() error {
 			}}),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues): %w", err)
+		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil

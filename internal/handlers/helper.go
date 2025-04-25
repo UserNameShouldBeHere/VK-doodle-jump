@@ -20,7 +20,7 @@ func WriteResponse(w http.ResponseWriter, responseData ResponseData) error {
 		return err
 	}
 
-	w.WriteHeader(responseData.Status)
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(jsonData)
 	if err != nil {
 		return err

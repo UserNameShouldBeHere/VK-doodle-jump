@@ -9,6 +9,7 @@ import (
 	"github.com/tarantool/go-tarantool/v2/datetime"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	customErrors "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/errors"
 )
 
 type AdminShopStorage struct {
@@ -42,13 +43,13 @@ func (s *AdminShopStorage) GetPromocodes(ctx context.Context) ([]domain.Promocod
 			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetPromocodes): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetPromocodes) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data [][]PromocodeAdminDataT
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetPromocodes): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetPromocodes) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	promocodes := make([]domain.PromocodeAdminData, len(data[0]))
@@ -76,12 +77,12 @@ func (s *AdminShopStorage) AddPromocode(ctx context.Context, newPromocode domain
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	activeTo, err := datetime.MakeDatetime(newPromocode.ActiveTo)
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddPromocode): %w", err)
+		return fmt.Errorf("(tarantool.AddPromocode) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddPromocode): %w", err)
+		return fmt.Errorf("(tarantool.AddPromocode) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -103,7 +104,7 @@ func (s *AdminShopStorage) AddPromocode(ctx context.Context, newPromocode domain
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddPromocode): %w", err)
+		return fmt.Errorf("(tarantool.AddPromocode) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -115,12 +116,12 @@ func (s *AdminShopStorage) UpdatePromocode(ctx context.Context, newPromocode dom
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	activeTo, err := datetime.MakeDatetime(newPromocode.ActiveTo)
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdatePromocode): %w", err)
+		return fmt.Errorf("(tarantool.UpdatePromocode) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdatePromocode): %w", err)
+		return fmt.Errorf("(tarantool.UpdatePromocode) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -143,7 +144,7 @@ func (s *AdminShopStorage) UpdatePromocode(ctx context.Context, newPromocode dom
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdatePromocode): %w", err)
+		return fmt.Errorf("(tarantool.UpdatePromocode) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -158,7 +159,7 @@ func (s *AdminShopStorage) DeletePromocode(ctx context.Context, id int) error {
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.DeletePromocode): %w", err)
+		return fmt.Errorf("(tarantool.DeletePromocode) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -170,13 +171,13 @@ func (s *AdminShopStorage) GetProducts(ctx context.Context) ([]domain.ProductAdm
 			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetProducts): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetProducts) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data [][]domain.ProductAdminData
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetProducts): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetProducts) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil
@@ -188,7 +189,7 @@ func (s *AdminShopStorage) AddProduct(ctx context.Context, newProduct domain.Pro
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddProduct): %w", err)
+		return fmt.Errorf("(tarantool.AddProduct) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -207,7 +208,7 @@ func (s *AdminShopStorage) AddProduct(ctx context.Context, newProduct domain.Pro
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddProduct): %w", err)
+		return fmt.Errorf("(tarantool.AddProduct) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -219,7 +220,7 @@ func (s *AdminShopStorage) UpdateProduct(ctx context.Context, newProduct domain.
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdateProduct): %w", err)
+		return fmt.Errorf("(tarantool.UpdateProduct) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -239,7 +240,7 @@ func (s *AdminShopStorage) UpdateProduct(ctx context.Context, newProduct domain.
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdateProduct): %w", err)
+		return fmt.Errorf("(tarantool.UpdateProduct) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -254,7 +255,7 @@ func (s *AdminShopStorage) DeleteProduct(ctx context.Context, id int) error {
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.DeleteProduct): %w", err)
+		return fmt.Errorf("(tarantool.DeleteProduct) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -266,13 +267,13 @@ func (s *AdminShopStorage) GetTasks(ctx context.Context) ([]domain.TaskAdminData
 			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetTasks): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetTasks) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data [][]domain.TaskAdminData
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return nil, fmt.Errorf("(tarantool.GetTasks): %w", err)
+		return nil, fmt.Errorf("(tarantool.GetTasks) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil
@@ -284,7 +285,7 @@ func (s *AdminShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdmin
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddTask): %w", err)
+		return fmt.Errorf("(tarantool.AddTask) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -301,7 +302,7 @@ func (s *AdminShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdmin
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.AddTask): %w", err)
+		return fmt.Errorf("(tarantool.AddTask) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -313,7 +314,7 @@ func (s *AdminShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAd
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdateProduct): %w", err)
+		return fmt.Errorf("(tarantool.UpdateProduct) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -330,7 +331,7 @@ func (s *AdminShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAd
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.UpdateTask): %w", err)
+		return fmt.Errorf("(tarantool.UpdateTask) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -345,7 +346,7 @@ func (s *AdminShopStorage) DeleteTask(ctx context.Context, id int) error {
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.DeleteTask): %w", err)
+		return fmt.Errorf("(tarantool.DeleteTask) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil

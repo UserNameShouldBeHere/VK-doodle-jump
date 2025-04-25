@@ -3,31 +3,167 @@ info:
   title: Api
   version: 1.0.0
 tags:
+  - name: auth
   - name: admin panel
   - name: profile
   - name: game
-  - name: shop
 
 paths:
 
-# admin panel
+# auth
 
-  /api/v1/admin/bonus/promocodes:
+  /api/v1/auth/signin:
     post:
       tags:
-        - admin panel
-      summary: add new promocodes
+        - auth
+      summary: sign in
       security:
         - cookieAuth: []
       responses:
         '200':
           description: ok
 
-  /api/v1/admin/bonus/items:
+  /api/v1/auth/check:
+    post:
+      tags:
+        - auth
+      summary: check for current session
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - auth
+      summary: logout
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+# admin panel
+
+  /api/v1/shop/admin/promocodes:
+    get:
+      tags:
+        - admin panel
+      summary: get promocodes
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/promocode/add:
     post:
       tags:
         - admin panel
-      summary: add new items
+      summary: add new promocode
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/promocode/update:
+    post:
+      tags:
+        - admin panel
+      summary: update promocode
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/promocode/delete:
+    post:
+      tags:
+        - admin panel
+      summary: delete promocode
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+  /api/v1/shop/admin/products:
+    get:
+      tags:
+        - admin panel
+      summary: get products
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/product/add:
+    post:
+      tags:
+        - admin panel
+      summary: add new product
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/product/update:
+    post:
+      tags:
+        - admin panel
+      summary: update product
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/product/delete:
+    post:
+      tags:
+        - admin panel
+      summary: delete product
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+
+  /api/v1/shop/admin/tasks:
+    get:
+      tags:
+        - admin panel
+      summary: get tasks
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/task/add:
+    post:
+      tags:
+        - admin panel
+      summary: add new task
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/task/update:
+    post:
+      tags:
+        - admin panel
+      summary: update task
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: ok
+  /api/v1/shop/admin/task/delete:
+    post:
+      tags:
+        - admin panel
+      summary: delete task
       security:
         - cookieAuth: []
       responses:
@@ -35,58 +171,8 @@ paths:
           description: ok
 
 # profile
-
-  /api/v1/profile/{uuid}/data:
-    get:
-      tags:
-        - profile
-      summary: get profile data
-      security:
-        - cookieAuth: []
-      parameters:
-        - in: path
-          name: uuid
-          schema:
-            type: integer
-          required: true
-          description: user uuid
-      responses:
-        '200':
-          description: ok
-    post:
-      tags:
-        - profile
-      summary: update profile
-      security:
-        - cookieAuth: []
-      parameters:
-        - in: path
-          name: uuid
-          schema:
-            type: integer
-          required: true
-          description: user uuid
-      responses:
-        '200':
-          description: ok
       
   /api/v1/profile/{uuid}/rating:
-    get:
-      tags:
-        - profile
-      summary: get user rating
-      security:
-        - cookieAuth: []
-      parameters:
-        - in: path
-          name: uuid
-          schema:
-            type: integer
-          required: true
-          description: user uuid
-      responses:
-        '200':
-          description: ok
     post:
       tags:
         - profile
@@ -111,26 +197,6 @@ paths:
           description: ok
 
 # game
-
-  /api/v1/game/settings:
-    get:
-      tags:
-        - game
-      summary: get game settings
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: ok
-    post:
-      tags:
-        - game
-      summary: update game settings
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: ok
   
   /api/v1/game/rating/top:
     get:
@@ -148,34 +214,6 @@ paths:
       responses:
         '200':
           description: ok
-          content:
-            application/form:
-              schema:
-                $ref: '#/components/schemas/TopScoreResponse'
-
-# shop
-
-  /api/v1/shop/promocodes:
-    get:
-      tags:
-        - shop
-      summary: get list of promocodes
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: ok
-    
-  /api/v1/shop/items:
-    get:
-      tags:
-        - shop
-      summary: get list of items
-      security:
-        - cookieAuth: []
-      responses:
-        '200':
-          description: ok
 
 components:
   securitySchemes:
@@ -185,6 +223,11 @@ components:
       name: token
 
   schemas:
+
+# auth
+
+# profile
+
     NewScoreRequest:
       required:
         - score
@@ -192,24 +235,3 @@ components:
         score:
           type: integer
           example: 100
-
-    TopScoreResponse:
-      required:
-        - users
-      properties:
-        users:
-          type: array
-          items:
-            type: object
-            required:
-              - name
-              - score
-            properties:
-              name:
-                type: string
-                example: "Dima"
-              score:
-                type: integer
-                example: 100
-
-

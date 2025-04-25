@@ -39,8 +39,8 @@ func NewAdminShopService(shopStorage AdminShopStorage, logger *zap.SugaredLogger
 func (s *AdminShopService) GetPromocodes(ctx context.Context) ([]domain.PromocodeAdminData, error) {
 	promocodes, err := s.shopStorage.GetPromocodes(ctx)
 	if err != nil {
-		s.logger.Errorf("failed to get promocodes: %v", err)
-		return nil, fmt.Errorf("(services.GetPromocodes): %w", err)
+		s.logger.Errorf("(adminShopService.GetPromocodes): %w", err)
+		return nil, fmt.Errorf("(adminShopService.GetPromocodes): %w", err)
 	}
 
 	return promocodes, nil
@@ -49,8 +49,8 @@ func (s *AdminShopService) GetPromocodes(ctx context.Context) ([]domain.Promocod
 func (s *AdminShopService) AddPromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
 	err := s.shopStorage.AddPromocode(ctx, newPromocode)
 	if err != nil {
-		s.logger.Errorf("failed to add promocode: %v", err)
-		return fmt.Errorf("(services.AddPromocode): %w", err)
+		s.logger.Errorf("(adminShopService.AddPromocode): %w", err)
+		return fmt.Errorf("(adminShopService.AddPromocode): %w", err)
 	}
 
 	return nil
@@ -59,8 +59,8 @@ func (s *AdminShopService) AddPromocode(ctx context.Context, newPromocode domain
 func (s *AdminShopService) UpdatePromocode(ctx context.Context, newPromocode domain.PromocodeAdminData) error {
 	err := s.shopStorage.UpdatePromocode(ctx, newPromocode)
 	if err != nil {
-		s.logger.Errorf("failed to update promocode: %v", err)
-		return fmt.Errorf("(services.UpdatePromocode): %w", err)
+		s.logger.Errorf("(adminShopService.UpdatePromocode): %w", err)
+		return fmt.Errorf("(adminShopService.UpdatePromocode): %w", err)
 	}
 
 	return nil
@@ -69,8 +69,8 @@ func (s *AdminShopService) UpdatePromocode(ctx context.Context, newPromocode dom
 func (s *AdminShopService) DeletePromocode(ctx context.Context, id int) error {
 	err := s.shopStorage.DeletePromocode(ctx, id)
 	if err != nil {
-		s.logger.Errorf("failed to delete promocode: %v", err)
-		return fmt.Errorf("(services.DeletePromocode): %w", err)
+		s.logger.Errorf("(adminShopService.DeletePromocode): %w", err)
+		return fmt.Errorf("(adminShopService.DeletePromocode): %w", err)
 	}
 
 	return nil
@@ -79,8 +79,8 @@ func (s *AdminShopService) DeletePromocode(ctx context.Context, id int) error {
 func (s *AdminShopService) GetProducts(ctx context.Context) ([]domain.ProductAdminData, error) {
 	products, err := s.shopStorage.GetProducts(ctx)
 	if err != nil {
-		s.logger.Errorf("failed to get products: %v", err)
-		return nil, fmt.Errorf("(services.GetProducts): %w", err)
+		s.logger.Errorf("(adminShopService.GetProducts): %w", err)
+		return nil, fmt.Errorf("(adminShopService.GetProducts): %w", err)
 	}
 
 	return products, nil
@@ -89,8 +89,8 @@ func (s *AdminShopService) GetProducts(ctx context.Context) ([]domain.ProductAdm
 func (s *AdminShopService) AddProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
 	err := s.shopStorage.AddProduct(ctx, newProduct)
 	if err != nil {
-		s.logger.Errorf("failed to add product: %v", err)
-		return fmt.Errorf("(services.AddProduct): %w", err)
+		s.logger.Errorf("(adminShopService.AddProduct): %w", err)
+		return fmt.Errorf("(adminShopService.AddProduct): %w", err)
 	}
 
 	return nil
@@ -99,8 +99,8 @@ func (s *AdminShopService) AddProduct(ctx context.Context, newProduct domain.Pro
 func (s *AdminShopService) UpdateProduct(ctx context.Context, newProduct domain.ProductAdminData) error {
 	err := s.shopStorage.UpdateProduct(ctx, newProduct)
 	if err != nil {
-		s.logger.Errorf("failed to update product: %v", err)
-		return fmt.Errorf("(services.UpdateProduct): %w", err)
+		s.logger.Errorf("(adminShopService.UpdateProduct): %w", err)
+		return fmt.Errorf("(adminShopService.UpdateProduct): %w", err)
 	}
 
 	return nil
@@ -109,8 +109,8 @@ func (s *AdminShopService) UpdateProduct(ctx context.Context, newProduct domain.
 func (s *AdminShopService) DeleteProduct(ctx context.Context, id int) error {
 	err := s.shopStorage.DeleteProduct(ctx, id)
 	if err != nil {
-		s.logger.Errorf("failed to delete product: %v", err)
-		return fmt.Errorf("(services.DeleteProduct): %w", err)
+		s.logger.Errorf("(adminShopService.DeleteProduct): %w", err)
+		return fmt.Errorf("(adminShopService.DeleteProduct): %w", err)
 	}
 
 	return nil
@@ -119,8 +119,8 @@ func (s *AdminShopService) DeleteProduct(ctx context.Context, id int) error {
 func (s *AdminShopService) GetTasks(ctx context.Context) ([]domain.TaskAdminData, error) {
 	tasks, err := s.shopStorage.GetTasks(ctx)
 	if err != nil {
-		s.logger.Errorf("failed to get tasks: %v", err)
-		return nil, fmt.Errorf("(services.GetTasks): %w", err)
+		s.logger.Errorf("(adminShopService.GetTasks): %w", err)
+		return nil, fmt.Errorf("(adminShopService.GetTasks): %w", err)
 	}
 
 	return tasks, nil
@@ -129,8 +129,8 @@ func (s *AdminShopService) GetTasks(ctx context.Context) ([]domain.TaskAdminData
 func (s *AdminShopService) AddTask(ctx context.Context, newTask domain.TaskAdminData) error {
 	err := s.shopStorage.AddTask(ctx, newTask)
 	if err != nil {
-		s.logger.Errorf("failed to add task: %v", err)
-		return fmt.Errorf("(services.AddTask): %w", err)
+		s.logger.Errorf("(adminShopService.AddTask): %w", err)
+		return fmt.Errorf("(adminShopService.AddTask): %w", err)
 	}
 
 	return nil
@@ -139,8 +139,8 @@ func (s *AdminShopService) AddTask(ctx context.Context, newTask domain.TaskAdmin
 func (s *AdminShopService) UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error {
 	err := s.shopStorage.UpdateTask(ctx, newTask)
 	if err != nil {
-		s.logger.Errorf("failed to update task: %v", err)
-		return fmt.Errorf("(services.UpdateTask): %w", err)
+		s.logger.Errorf("(adminShopService.UpdateTask): %w", err)
+		return fmt.Errorf("(adminShopService.UpdateTask): %w", err)
 	}
 
 	return nil
@@ -149,7 +149,7 @@ func (s *AdminShopService) UpdateTask(ctx context.Context, newTask domain.TaskAd
 func (s *AdminShopService) DeleteTask(ctx context.Context, id int) error {
 	err := s.shopStorage.DeleteTask(ctx, id)
 	if err != nil {
-		s.logger.Errorf("failed to delete task: %v", err)
+		s.logger.Errorf("failed to delete task: %w", err)
 		return fmt.Errorf("(services.DeleteTask): %w", err)
 	}
 

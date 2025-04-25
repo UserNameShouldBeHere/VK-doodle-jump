@@ -31,9 +31,9 @@ func main() {
 	)
 
 	flag.StringVar(&backendHost, "back-h", "127.0.0.1", "backend host")
-	flag.StringVar(&frontendHost, "front-h", "127.0.0.1", "frontend host")
-	flag.IntVar(&backendPort, "back-p", 80, "backend port")
-	flag.IntVar(&frontendtort, "front-p", 3000, "frontend port")
+	flag.StringVar(&frontendHost, "front-h", "109.120.183.59", "frontend host")
+	flag.IntVar(&backendPort, "back-p", 3001, "backend port")
+	flag.IntVar(&frontendtort, "front-p", 443, "frontend port")
 	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
 	flag.Parse()
 
@@ -77,12 +77,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	authStorage, err := storage.NewAuthStorage(conn)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	usersService, err := services.NewUsersService(usersStorage, sugarLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
 	adminShopService, err := services.NewAdminShopService(adminShopStorage, sugarLogger)
+	if err != nil {
+		log.Fatal(err)
+	}
+	authService, err := services.NewAuthService(authStorage, sugarLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -99,14 +107,19 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init shop handler: %v", err)
 	}
+	authHandler, err := handlers.NewAuthHandler(authService, sugarLogger)
+	if err != nil {
+		log.Fatalf("Failed to init auth handler: %v", err)
+	}
 	middlewareHandler, err := handlers.NewMiddlewareHandler(
 		fmt.Sprintf("%s:%d", frontendHost, frontendtort),
+		authService,
 		logger.Sugar())
 	if err != nil {
 		log.Fatalf("Failed to init middleware handler: %v", err)
 	}
 
-	router := initRouter(gameHandler, profileHandler, adminShopHandler, middlewareHandler)
+	router := initRouter(authHandler, gameHandler, profileHandler, adminShopHandler, middlewareHandler)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", backendPort),
@@ -141,6 +154,7 @@ func main() {
 }
 
 func initRouter(
+	authHandler *handlers.AuthHandler,
 	gameHandler *handlers.GameHandler,
 	profileHandler *handlers.ProfileHandler,
 	adminShopHandler *handlers.AdminShopHandler,
@@ -151,14 +165,22 @@ func initRouter(
 	router.Use(middlewareHandler.Panic)
 
 	apiRouter := router.PathPrefix("/api/v1").Subrouter()
+	authRouter := apiRouter.PathPrefix("/auth").Subrouter()
 	profileRouter := apiRouter.PathPrefix("/profile").Subrouter()
 	gameRouter := apiRouter.PathPrefix("/game").Subrouter()
 	shopRouter := apiRouter.PathPrefix("/shop").Subrouter()
 
-	profileRouter.HandleFunc("/{uuid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
+	authRouter.HandleFunc("/signin", authHandler.SignIn).Methods("POST", "OPTIONS")
+	authRouter.HandleFunc("/check", authHandler.Check).Methods("POST", "OPTIONS")
+	authRouter.HandleFunc("/logout", authHandler.Logout).Methods("POST", "OPTIONS")
+
+	profileRouter.Use(middlewareHandler.Auth)
+	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 
 	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")
 
+	shopRouter.Use(middlewareHandler.Auth)
+	shopRouter.Use(middlewareHandler.Admin)
 	shopRouter.HandleFunc("/promocodes", adminShopHandler.GetPromocodes).Methods("GET", "OPTIONS")
 	shopRouter.HandleFunc("/promocode/add", adminShopHandler.AddPromocode).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/promocode/update", adminShopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
