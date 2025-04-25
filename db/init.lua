@@ -24,7 +24,7 @@ box.space.leagues:create_index('primary', {type = 'tree', parts = {
 }})
 
 box.space.leagues:insert{0, 'Дерево', 3, 0}
-box.space.leagues:insert{1, 'Медь', 2, 3}
+box.space.leagues:insert{1, 'Бронза', 2, 3}
 box.space.leagues:insert{2, 'Серебро', 1, 2}
 box.space.leagues:insert{3, 'Золото', 0, 2}
 
@@ -39,6 +39,31 @@ box.schema.func.create('leagues_settings', {
             end
 
             return res
+        end
+    ]]
+})
+
+-- ===================================
+
+box.schema.space.create('admins')
+
+box.space.admins:format({
+    {name = 'vkid', type = 'unsigned'},
+})
+
+box.space.admins:create_index('primary', {type = 'tree', parts = {'vkid'}})
+
+box.schema.func.drop('is_admin', {if_exists = true})
+box.schema.func.create('is_admin', {
+    body = [[
+        function(args)
+            user = box.space.admins.index.primary:select({args.vkid})
+
+            if (user[1] == nil) then
+                return false
+            end
+
+            return true
         end
     ]]
 })
@@ -180,7 +205,7 @@ box.schema.func.drop('user_score', {if_exists = true})
 box.schema.func.create('user_score', {
     body = [[
         function(args)
-            return box.space.users.index.name:select({args.name})[1]['max_score']
+            return box.space.users.index.primary:select({args.vkid})[1]['max_score']
         end
     ]]
 })

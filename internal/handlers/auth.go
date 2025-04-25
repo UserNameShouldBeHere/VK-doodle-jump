@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
+	"strconv"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
 	"go.uber.org/zap"
@@ -15,6 +17,7 @@ type AuthService interface {
 	SignIn(ctx context.Context, req domain.SignInRequest) (domain.SignInData, error)
 	Check(ctx context.Context, session domain.SignInData, state, deviceId string) (domain.SignInData, error)
 	Logout(ctx context.Context, session domain.SignInData, state, deviceId string) error
+	IsAdmin(ctx context.Context, vkid int) (bool, error)
 }
 
 type AuthHandler struct {
@@ -40,12 +43,13 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
 		})
 		if err != nil {
-			h.logger.Errorf("unable to decode http request: %v", err)
+			h.logger.Errorf("error at writing response: %v", err)
 		}
 		return
 	}
@@ -53,6 +57,7 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 	var reqData domain.SignInRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request data: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -91,9 +96,18 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 		HttpOnly: true,
 		// Secure:   true,
 	}
+	vkIdCookie := &http.Cookie{
+		Name:     "vkid",
+		Value:    fmt.Sprintf("%d", signInData.User.VkId),
+		Path:     "/api/v1",
+		MaxAge:   3600,
+		HttpOnly: true,
+		// Secure:   true,
+	}
 
 	http.SetCookie(w, accessCookie)
 	http.SetCookie(w, refreshCookie)
+	http.SetCookie(w, vkIdCookie)
 
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
@@ -108,12 +122,6 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-type checkRequest struct {
-	VkId     int    `json:"vkid"`
-	DeviceId string `json:"device_id"`
-	State    string `json:"state"`
-}
-
 func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 	accessToken, err := req.Cookie("access")
 	if err != nil {
@@ -123,25 +131,18 @@ func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		refreshToken = &http.Cookie{}
 	}
-	fmt.Println(refreshToken)
-
-	ctx := req.Context()
-
-	body, err := io.ReadAll(req.Body)
+	vkIdStr, err := req.Cookie("vkid")
 	if err != nil {
-		err = WriteResponse(w, ResponseData{
-			Status: http.StatusBadRequest,
-			Data:   nil,
-		})
-		if err != nil {
-			h.logger.Errorf("unable to decode http request: %v", err)
-		}
-		return
+		vkIdStr = &http.Cookie{}
+	}
+	deviceId, err := req.Cookie("device_id")
+	if err != nil {
+		deviceId = &http.Cookie{}
 	}
 
-	var reqData checkRequest
-	err = json.Unmarshal(body, &reqData)
+	vkId, err := strconv.Atoi(vkIdStr.Value)
 	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -152,15 +153,17 @@ func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	ctx := req.Context()
+
 	checkData := domain.SignInData{
 		User: domain.UserHeader{
-			VkId: reqData.VkId,
+			VkId: vkId,
 		},
 		AccessToken:  accessToken.Value,
 		RefreshToken: refreshToken.Value,
 	}
 
-	signInData, err := h.authService.Check(ctx, checkData, reqData.State, reqData.DeviceId)
+	signInData, err := h.authService.Check(ctx, checkData, genState(50), deviceId.Value)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusUnauthorized,
@@ -187,10 +190,20 @@ func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 		MaxAge:   3600 * 24 * 180,
 		HttpOnly: true,
 		// Secure:   true,
+
+	}
+	vkIdCookie := &http.Cookie{
+		Name:     "vkid",
+		Value:    fmt.Sprintf("%d", signInData.User.VkId),
+		Path:     "/api/v1",
+		MaxAge:   3600,
+		HttpOnly: true,
+		// Secure:   true,
 	}
 
 	http.SetCookie(w, accessCookie)
 	http.SetCookie(w, refreshCookie)
+	http.SetCookie(w, vkIdCookie)
 
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
@@ -221,24 +234,18 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		refreshToken = &http.Cookie{}
 	}
-
-	ctx := req.Context()
-
-	body, err := io.ReadAll(req.Body)
+	vkIdStr, err := req.Cookie("vkid")
 	if err != nil {
-		err = WriteResponse(w, ResponseData{
-			Status: http.StatusBadRequest,
-			Data:   nil,
-		})
-		if err != nil {
-			h.logger.Errorf("unable to decode http request: %v", err)
-		}
-		return
+		vkIdStr = &http.Cookie{}
+	}
+	deviceId, err := req.Cookie("device_id")
+	if err != nil {
+		deviceId = &http.Cookie{}
 	}
 
-	var reqData checkRequest
-	err = json.Unmarshal(body, &reqData)
+	vkId, err := strconv.Atoi(vkIdStr.Value)
 	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -249,15 +256,17 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	ctx := req.Context()
+
 	checkData := domain.SignInData{
 		User: domain.UserHeader{
-			VkId: reqData.VkId,
+			VkId: vkId,
 		},
 		AccessToken:  accessToken.Value,
 		RefreshToken: refreshToken.Value,
 	}
 
-	err = h.authService.Logout(ctx, checkData, reqData.State, reqData.DeviceId)
+	err = h.authService.Logout(ctx, checkData, genState(50), deviceId.Value)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusInternalServerError,
@@ -285,9 +294,18 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req *http.Request) {
 		HttpOnly: true,
 		// Secure:   true,
 	}
+	vkIdCookie := &http.Cookie{
+		Name:     "vkid",
+		Value:    "",
+		Path:     "/api/v1",
+		MaxAge:   0,
+		HttpOnly: true,
+		// Secure:   true,
+	}
 
 	http.SetCookie(w, accessCookie)
 	http.SetCookie(w, refreshCookie)
+	http.SetCookie(w, vkIdCookie)
 
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
@@ -296,4 +314,15 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)
 	}
+}
+
+func genState(length int) string {
+	const charSet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"
+
+	str := make([]rune, length)
+	for i := range length {
+		str[i] = rune(charSet[rand.Intn(len(charSet))])
+	}
+
+	return string(str)
 }

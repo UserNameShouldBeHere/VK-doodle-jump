@@ -10,7 +10,7 @@ import (
 )
 
 type UsersStorage interface {
-	UpdateUserRating(ctx context.Context, uuid string, newScore int) error
+	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
 	GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error)
 }
 
@@ -26,11 +26,11 @@ func NewUsersService(storage UsersStorage, logger *zap.SugaredLogger) (*UsersSer
 	}, nil
 }
 
-func (s *UsersService) UpdateUserRating(ctx context.Context, uuid string, newScore int) error {
-	err := s.storage.UpdateUserRating(ctx, uuid, newScore)
+func (s *UsersService) UpdateUserRating(ctx context.Context, vkid int, newScore int) error {
+	err := s.storage.UpdateUserRating(ctx, vkid, newScore)
 	if err != nil {
-		s.logger.Errorf("failed to update user's rating: %v", err)
-		return fmt.Errorf("(services.UpdateUserRating): %w", err)
+		s.logger.Errorf("(usersService.UpdateUserRating) %w", err)
+		return fmt.Errorf("(usersService.UpdateUserRating) %w", err)
 	}
 
 	return nil
@@ -39,8 +39,8 @@ func (s *UsersService) UpdateUserRating(ctx context.Context, uuid string, newSco
 func (s *UsersService) GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error) {
 	usersTop, err := s.storage.GetTopUsers(ctx, count)
 	if err != nil {
-		s.logger.Errorf("failed to get top users: %v", err)
-		return nil, fmt.Errorf("(services.GetTopUsers): %w", err)
+		s.logger.Errorf("(usersService.GetTopUsers): %w", err)
+		return nil, fmt.Errorf("(usersService.GetTopUsers): %w", err)
 	}
 
 	return usersTop, nil

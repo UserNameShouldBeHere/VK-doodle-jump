@@ -10,8 +10,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
 	"go.uber.org/zap"
+
+	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	customErrors "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/errors"
 )
 
 type AuthStorage interface {
@@ -19,6 +21,7 @@ type AuthStorage interface {
 	Check(ctx context.Context, vkid int, accessToken string) (bool, error)
 	Logout(ctx context.Context, vkid int) error
 	GetUserData(ctx context.Context, vkid int) (domain.UserHeader, error)
+	IsAdmin(ctx context.Context, vkid int) (bool, error)
 }
 
 type AuthService struct {
@@ -82,18 +85,18 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 	authResp := &authResponse{}
 	errResp, err := s.apiCall(authUrl, data, authResp)
 	if err != nil {
-		s.logger.Errorf("failed to make api call: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrFailedToCallApi, err)
+		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
-		s.logger.Errorf("error recieved from api: %v", err)
-		return domain.SignInData{}, fmt.Errorf(errResp.Err)
+		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
+		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	if req.State != authResp.State {
-		s.logger.Errorf("response state doesn't match: %v", err)
-		return domain.SignInData{}, fmt.Errorf("response state doesn't match")
+		s.logger.Errorf("(authService.SignIn) %v", customErrors.ErrStateMismatch)
+		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w", customErrors.ErrStateMismatch)
 	}
 
 	infoUrl := s.oauthUrl + "/user_info"
@@ -104,13 +107,13 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 	infoResp := &infoResponse{}
 	errResp, err = s.apiCall(infoUrl, data, infoResp)
 	if err != nil {
-		s.logger.Errorf("failed to make api call: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrFailedToCallApi, err)
+		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
-		s.logger.Errorf("error recieved from api: %v", err)
-		return domain.SignInData{}, fmt.Errorf(errResp.Err)
+		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
+		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	signInData := domain.SignInData{
@@ -124,8 +127,8 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 
 	err = s.authStorage.SignIn(ctx, signInData)
 	if err != nil {
-		s.logger.Errorf("failed sign in user: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.SignIn) %v", err)
+		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w", err)
 	}
 
 	signInData.RefreshToken = authResp.RefreshToken
@@ -133,17 +136,22 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 	return signInData, nil
 }
 
-func (s *AuthService) Check(ctx context.Context, session domain.SignInData, state, deviceId string) (domain.SignInData, error) {
+func (s *AuthService) Check(
+	ctx context.Context,
+	session domain.SignInData,
+	state string,
+	deviceId string) (domain.SignInData, error) {
+
 	ok, err := s.authStorage.Check(ctx, session.User.VkId, session.AccessToken)
 	if err != nil {
-		s.logger.Errorf("failed check user: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.Check) %v", err)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w", err)
 	}
 	if ok {
 		userHeader, err := s.authStorage.GetUserData(ctx, session.User.VkId)
 		if err != nil {
-			s.logger.Errorf("failed to get user: %v", err)
-			return domain.SignInData{}, err
+			s.logger.Errorf("(authService.Check) %v", err)
+			return domain.SignInData{}, fmt.Errorf("(authService.Check) %w", err)
 		}
 
 		return domain.SignInData{
@@ -165,17 +173,18 @@ func (s *AuthService) Check(ctx context.Context, session domain.SignInData, stat
 	refreshResp := &authResponse{}
 	errResp, err := s.apiCall(authUrl, data, refreshResp)
 	if err != nil {
-		s.logger.Errorf("failed to make api call: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.Check) %v: %v", customErrors.ErrFailedToCallApi, err)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
-		s.logger.Errorf("error recieved from api: %v", err)
-		return domain.SignInData{}, fmt.Errorf("unathorized")
+		s.logger.Errorf("(authService.Check) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	if state != refreshResp.State {
-		return domain.SignInData{}, fmt.Errorf("response state doesn't match")
+		s.logger.Errorf("(authService.Check) %v", customErrors.ErrStateMismatch)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w", customErrors.ErrStateMismatch)
 	}
 
 	infoUrl := s.oauthUrl + "/user_info"
@@ -186,13 +195,13 @@ func (s *AuthService) Check(ctx context.Context, session domain.SignInData, stat
 	infoResp := &infoResponse{}
 	errResp, err = s.apiCall(infoUrl, data, infoResp)
 	if err != nil {
-		s.logger.Errorf("failed to make api call: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.Check) %v: %v", customErrors.ErrFailedToCallApi, err)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
-		s.logger.Errorf("error recieved from api: %v", err)
-		return domain.SignInData{}, fmt.Errorf("unathorized")
+		s.logger.Errorf("(authService.Check) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	signInData := domain.SignInData{
@@ -207,8 +216,8 @@ func (s *AuthService) Check(ctx context.Context, session domain.SignInData, stat
 
 	err = s.authStorage.SignIn(ctx, signInData)
 	if err != nil {
-		s.logger.Errorf("failed sign in user: %v", err)
-		return domain.SignInData{}, err
+		s.logger.Errorf("(authService.Check) %v", err)
+		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w", err)
 	}
 
 	return signInData, nil
@@ -217,7 +226,8 @@ func (s *AuthService) Check(ctx context.Context, session domain.SignInData, stat
 func (s *AuthService) Logout(ctx context.Context, session domain.SignInData, state, deviceId string) error {
 	newSession, err := s.Check(ctx, session, state, deviceId)
 	if err != nil {
-		return fmt.Errorf("unauthorized")
+		s.logger.Errorf("(authService.Logout) %v", err)
+		return fmt.Errorf("(authService.Logout) %w", err)
 	}
 
 	authUrl := s.oauthUrl + "/logout"
@@ -228,63 +238,68 @@ func (s *AuthService) Logout(ctx context.Context, session domain.SignInData, sta
 	authResp := &authResponse{}
 	errResp, err := s.apiCall(authUrl, data, authResp)
 	if err != nil {
-		s.logger.Errorf("failed to make api call: %v", err)
-		return err
+		s.logger.Errorf("(authService.Logout) %v: %v", customErrors.ErrFailedToCallApi, err)
+		return fmt.Errorf("(authService.Logout) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
-		s.logger.Errorf("error recieved from api: %v", err)
-		return fmt.Errorf(errResp.Err)
+		s.logger.Errorf("(authService.Logout) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
+		return fmt.Errorf("(authService.Logout) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	err = s.authStorage.Logout(ctx, newSession.User.VkId)
 	if err != nil {
-		s.logger.Errorf("failed to logout user: %v", err)
-		return err
+		s.logger.Errorf("(authService.Logout) %v", err)
+		return fmt.Errorf("(authService.Logout) %w", err)
 	}
 
 	return nil
+}
+
+func (s *AuthService) IsAdmin(ctx context.Context, vkid int) (bool, error) {
+	ok, err := s.authStorage.IsAdmin(ctx, vkid)
+	if err != nil {
+		s.logger.Errorf("(authService.IsAdmin) %v", err)
+		return false, fmt.Errorf("(authService.IsAdmin) %w", err)
+	}
+
+	return ok, nil
 }
 
 func (s *AuthService) apiCall(apiUrl string, urlValues url.Values, target interface{}) (errResponse, error) {
 	client := &http.Client{}
 	r, err := http.NewRequest(http.MethodPost, apiUrl, strings.NewReader(urlValues.Encode()))
 	if err != nil {
-		s.logger.Errorf("failed to create http request: %v", err)
-		return errResponse{}, err
+		return errResponse{}, fmt.Errorf("failed to create http request: %w", err)
 	}
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
 	resp, err := client.Do(r)
 	if err != nil {
-		s.logger.Errorf("failed to send http request: %v", err)
-		return errResponse{}, err
+		return errResponse{}, fmt.Errorf("failed to send http request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return errResponse{}, fmt.Errorf("unexpected wrong status")
+		return errResponse{}, fmt.Errorf("non 200 response code")
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		s.logger.Errorf("failed read body: %v", err)
-		return errResponse{}, err
+		return errResponse{}, fmt.Errorf("failed read body: %w", err)
 	}
 
 	body := io.NopCloser(bytes.NewReader(data))
 	err = json.NewDecoder(body).Decode(target)
 	if err != nil {
-		s.logger.Errorf("failed to decode http response: %v", err)
-		return errResponse{}, err
+		return errResponse{}, fmt.Errorf("failed to decode http response: %w", err)
 	}
 
 	body = io.NopCloser(bytes.NewReader(data))
 	respErr := &errResponse{}
 	err = json.NewDecoder(body).Decode(respErr)
 	if err != nil {
-		s.logger.Errorf("failed to decode http response: %v", err)
-		return errResponse{}, err
+		return errResponse{}, fmt.Errorf("failed to decode http response: %w", err)
 	}
 
 	return *respErr, nil

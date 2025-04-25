@@ -77,6 +77,7 @@ func (h *AdminShopHandler) AddPromocode(w http.ResponseWriter, req *http.Request
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -90,6 +91,7 @@ func (h *AdminShopHandler) AddPromocode(w http.ResponseWriter, req *http.Request
 	var reqData UpdatePromocodeRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -127,6 +129,7 @@ func (h *AdminShopHandler) UpdatePromocode(w http.ResponseWriter, req *http.Requ
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -140,6 +143,7 @@ func (h *AdminShopHandler) UpdatePromocode(w http.ResponseWriter, req *http.Requ
 	var reqData UpdatePromocodeRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -181,6 +185,7 @@ func (h *AdminShopHandler) DeletePromocode(w http.ResponseWriter, req *http.Requ
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -194,6 +199,7 @@ func (h *AdminShopHandler) DeletePromocode(w http.ResponseWriter, req *http.Requ
 	var reqData IdRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -266,6 +272,7 @@ func (h *AdminShopHandler) AddProduct(w http.ResponseWriter, req *http.Request) 
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -279,6 +286,7 @@ func (h *AdminShopHandler) AddProduct(w http.ResponseWriter, req *http.Request) 
 	var reqData UpdateProductRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -316,6 +324,7 @@ func (h *AdminShopHandler) UpdateProduct(w http.ResponseWriter, req *http.Reques
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -329,6 +338,7 @@ func (h *AdminShopHandler) UpdateProduct(w http.ResponseWriter, req *http.Reques
 	var reqData UpdateProductRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -366,6 +376,7 @@ func (h *AdminShopHandler) DeleteProduct(w http.ResponseWriter, req *http.Reques
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -379,6 +390,7 @@ func (h *AdminShopHandler) DeleteProduct(w http.ResponseWriter, req *http.Reques
 	var reqData IdRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -451,12 +463,13 @@ func (h *AdminShopHandler) AddTask(w http.ResponseWriter, req *http.Request) {
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
 		})
 		if err != nil {
-			h.logger.Errorf("unable to decode http request: %v", err)
+			h.logger.Errorf("error at writing response: %v", err)
 		}
 		return
 	}
@@ -464,6 +477,7 @@ func (h *AdminShopHandler) AddTask(w http.ResponseWriter, req *http.Request) {
 	var reqData UpdateTaskRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -501,12 +515,13 @@ func (h *AdminShopHandler) UpdateTask(w http.ResponseWriter, req *http.Request) 
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
 		})
 		if err != nil {
-			h.logger.Errorf("unable to decode http request: %v", err)
+			h.logger.Errorf("error at writing response: %v", err)
 		}
 		return
 	}
@@ -514,6 +529,7 @@ func (h *AdminShopHandler) UpdateTask(w http.ResponseWriter, req *http.Request) 
 	var reqData UpdateTaskRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
@@ -551,12 +567,13 @@ func (h *AdminShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) 
 
 	body, err := io.ReadAll(req.Body)
 	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,
 		})
 		if err != nil {
-			h.logger.Errorf("unable to decode http request: %v", err)
+			h.logger.Errorf("error at writing response: %v", err)
 		}
 		return
 	}
@@ -564,6 +581,7 @@ func (h *AdminShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) 
 	var reqData IdRequest
 	err = json.Unmarshal(body, &reqData)
 	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
 			Data:   nil,

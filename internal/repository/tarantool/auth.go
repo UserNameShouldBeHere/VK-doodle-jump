@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	customErrors "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/errors"
 	"github.com/tarantool/go-tarantool/v2"
 	"github.com/tarantool/go-tarantool/v2/datetime"
 )
@@ -30,24 +31,24 @@ func (s *AuthStorage) SignIn(ctx context.Context, signInData domain.SignInData) 
 			}}),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.SignIn): %w", err)
+		return fmt.Errorf("(tarantool.SignIn) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data []bool
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return fmt.Errorf("(tarantool.SignIn): %w", err)
+		return fmt.Errorf("(tarantool.SignIn) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	if data[0] {
 		err = s.updateSession(ctx, signInData)
 		if err != nil {
-			return fmt.Errorf("(tarantool.SignIn): %w", err)
+			return fmt.Errorf("(tarantool.SignIn) %w", err)
 		}
 	} else {
 		err = s.createUser(ctx, signInData)
 		if err != nil {
-			return fmt.Errorf("(tarantool.SignIn): %w", err)
+			return fmt.Errorf("(tarantool.SignIn) %w", err)
 		}
 	}
 
@@ -63,13 +64,13 @@ func (s *AuthStorage) Check(ctx context.Context, vkid int, accessToken string) (
 			}}),
 	).GetResponse()
 	if err != nil {
-		return false, fmt.Errorf("(tarantool.Check): %w", err)
+		return false, fmt.Errorf("(tarantool.Check) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data []bool
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return false, fmt.Errorf("(tarantool.Check): %w", err)
+		return false, fmt.Errorf("(tarantool.Check) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil
@@ -84,13 +85,13 @@ func (s *AuthStorage) CheckToken(ctx context.Context, vkid int, accessToken stri
 			}}),
 	).GetResponse()
 	if err != nil {
-		return false, fmt.Errorf("(tarantool.CheckToken): %w", err)
+		return false, fmt.Errorf("(tarantool.CheckToken) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data []bool
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return false, fmt.Errorf("(tarantool.CheckToken): %w", err)
+		return false, fmt.Errorf("(tarantool.CheckToken) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil
@@ -101,7 +102,7 @@ func (s *AuthStorage) Logout(ctx context.Context, vkid int) error {
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.createUser): %w", err)
+		return fmt.Errorf("(tarantool.Logout) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -115,7 +116,7 @@ func (s *AuthStorage) Logout(ctx context.Context, vkid int) error {
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.Logout): %w", err)
+		return fmt.Errorf("(tarantool.Logout) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -126,16 +127,38 @@ func (s *AuthStorage) GetUserData(ctx context.Context, vkid int) (domain.UserHea
 		tarantool.NewCallRequest("user_header").
 			Args([]interface{}{map[string]interface{}{
 				"vkid": vkid,
-			}}),
+			}}).
+			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return domain.UserHeader{}, fmt.Errorf("(tarantool.CheckToken): %w", err)
+		return domain.UserHeader{}, fmt.Errorf("(tarantool.GetUserData) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data []domain.UserHeader
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return domain.UserHeader{}, fmt.Errorf("(tarantool.CheckToken): %w", err)
+		return domain.UserHeader{}, fmt.Errorf("(tarantool.GetUserData) %w: %v", customErrors.ErrTarantoolDecode, err)
+	}
+
+	return data[0], nil
+}
+
+func (s *AuthStorage) IsAdmin(ctx context.Context, vkid int) (bool, error) {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("is_admin").
+			Args([]interface{}{map[string]interface{}{
+				"vkid": vkid,
+			}}).
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return false, fmt.Errorf("(tarantool.IsAdmin) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	var data []bool
+	err = resp.DecodeTyped(&data)
+	if err != nil {
+		return false, fmt.Errorf("(tarantool.IsAdmin) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil
@@ -146,14 +169,14 @@ func (s *AuthStorage) createUser(ctx context.Context, signInData domain.SignInDa
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	accessExpiration, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.createUser): %w", err)
+		return fmt.Errorf("(tarantool.createUser) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	tm = time.Now()
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	datetime, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.createUser): %w", err)
+		return fmt.Errorf("(tarantool.createUser) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -172,7 +195,7 @@ func (s *AuthStorage) createUser(ctx context.Context, signInData domain.SignInDa
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.createUser): %w", err)
+		return fmt.Errorf("(tarantool.createUser) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil
@@ -183,7 +206,7 @@ func (s *AuthStorage) updateSession(ctx context.Context, signInData domain.SignI
 	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
 	accessExpiration, err := datetime.MakeDatetime(tm)
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateSession): %w", err)
+		return fmt.Errorf("(tarantool.updateSession) %w: %v", customErrors.ErrInternal, err)
 	}
 
 	_, err = s.conn.Do(
@@ -201,7 +224,7 @@ func (s *AuthStorage) updateSession(ctx context.Context, signInData domain.SignI
 	).Get()
 
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateSession): %w", err)
+		return fmt.Errorf("(tarantool.updateSession) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil

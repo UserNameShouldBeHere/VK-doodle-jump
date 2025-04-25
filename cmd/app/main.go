@@ -31,9 +31,9 @@ func main() {
 	)
 
 	flag.StringVar(&backendHost, "back-h", "127.0.0.1", "backend host")
-	flag.StringVar(&frontendHost, "front-h", "127.0.0.1", "frontend host")
-	flag.IntVar(&backendPort, "back-p", 80, "backend port")
-	flag.IntVar(&frontendtort, "front-p", 3000, "frontend port")
+	flag.StringVar(&frontendHost, "front-h", "109.120.183.59", "frontend host")
+	flag.IntVar(&backendPort, "back-p", 3001, "backend port")
+	flag.IntVar(&frontendtort, "front-p", 443, "frontend port")
 	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
 	flag.Parse()
 
@@ -113,6 +113,7 @@ func main() {
 	}
 	middlewareHandler, err := handlers.NewMiddlewareHandler(
 		fmt.Sprintf("%s:%d", frontendHost, frontendtort),
+		authService,
 		logger.Sugar())
 	if err != nil {
 		log.Fatalf("Failed to init middleware handler: %v", err)
@@ -173,10 +174,13 @@ func initRouter(
 	authRouter.HandleFunc("/check", authHandler.Check).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/logout", authHandler.Logout).Methods("POST", "OPTIONS")
 
-	profileRouter.HandleFunc("/{uuid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
+	profileRouter.Use(middlewareHandler.Auth)
+	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 
 	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")
 
+	shopRouter.Use(middlewareHandler.Auth)
+	shopRouter.Use(middlewareHandler.Admin)
 	shopRouter.HandleFunc("/promocodes", adminShopHandler.GetPromocodes).Methods("GET", "OPTIONS")
 	shopRouter.HandleFunc("/promocode/add", adminShopHandler.AddPromocode).Methods("POST", "OPTIONS")
 	shopRouter.HandleFunc("/promocode/update", adminShopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
