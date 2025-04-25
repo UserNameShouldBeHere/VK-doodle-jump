@@ -40,7 +40,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	dialer := tarantool.NetDialer{
-		Address:  "tarantool:3301",
+		Address:  "localhost:3301",
 		User:     "admin",
 		Password: "pass",
 	}
@@ -175,6 +175,7 @@ func initRouter(
 	authRouter.HandleFunc("/logout", authHandler.Logout).Methods("POST", "OPTIONS")
 
 	profileRouter.Use(middlewareHandler.Auth)
+	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.GetNearbyUsers).Methods("GET", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 
 	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")

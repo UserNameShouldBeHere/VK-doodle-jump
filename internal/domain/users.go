@@ -11,7 +11,7 @@ type UserRating struct {
 	Score int    `json:"score"`
 }
 
-type LeagueTopUsers struct {
-	League string       `json:"league"`
-	Users  []UserRating `json:"users"`
-}
+// type LeagueTopUsers struct {
+// 	League string       `json:"league"`
+// 	Users  []UserRating `json:"users"`
+// }

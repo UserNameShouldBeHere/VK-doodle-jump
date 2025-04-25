@@ -188,7 +188,6 @@ func (s *AuthStorage) createUser(ctx context.Context, signInData domain.SignInDa
 				signInData.AccessToken,
 				accessExpiration,
 				0,
-				0,
 				datetime,
 			}).
 			Context(ctx),

@@ -15,7 +15,8 @@ import (
 
 type UsersService interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
-	GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error)
+	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
+	GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error)
 }
 
 type ProfileHandler struct {
@@ -36,9 +37,8 @@ type UpdateRatingRequest struct {
 
 func (h *ProfileHandler) UpdateRating(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	vkIdStr := mux.Vars(req)["vkid"]
 
-	vkid, err := strconv.Atoi(vkIdStr)
+	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
 	if err != nil {
 		h.logger.Errorf("failed to convert vkid to int: %v", err)
 		err = WriteResponse(w, ResponseData{
@@ -93,6 +93,49 @@ func (h *ProfileHandler) UpdateRating(w http.ResponseWriter, req *http.Request) 
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
 		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *ProfileHandler) GetNearbyUsers(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+	count, err := strconv.Atoi(req.URL.Query().Get("count"))
+	if err != nil || count <= 0 {
+		count = 10
+	}
+
+	usersTop, err := h.usersService.GetNearbyUsers(ctx, vkid, count)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusInternalServerError,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data: UsersTopResponse{
+			Users: usersTop,
+		},
 	})
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)

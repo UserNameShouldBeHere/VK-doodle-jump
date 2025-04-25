@@ -3,7 +3,6 @@ package tarantool
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
@@ -22,20 +21,6 @@ func NewUsersStorage(ctx context.Context, conn *tarantool.Connection, leagueUpda
 		leagueUpdateInterval: leagueUpdateInterval,
 		conn:                 conn,
 	}
-
-	go func() {
-		for {
-			select {
-			case <-time.After(time.Second * time.Duration(storage.leagueUpdateInterval)):
-				err := storage.updateLeagues()
-				if err != nil {
-					fmt.Println(err)
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
 
 	return storage, nil
 }
@@ -72,8 +57,8 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, vkid int, newScore 
 				Index("primary").
 				Key([]interface{}{vkid}).
 				Operations(tarantool.NewOperations().
-					Assign(6, newScore).
-					Assign(7, datetime)).
+					Assign(5, newScore).
+					Assign(6, datetime)).
 				Context(ctx),
 		).Get()
 
@@ -85,9 +70,9 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, vkid int, newScore 
 	return nil
 }
 
-func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error) {
+func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error) {
 	resp, err := s.conn.Do(
-		tarantool.NewCallRequest("league_users_top").
+		tarantool.NewCallRequest("users_top").
 			Args([]interface{}{map[string]interface{}{
 				"limit": count,
 			}}).
@@ -97,7 +82,7 @@ func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.Lea
 		return nil, fmt.Errorf("(tarantool.GetTopUsers) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
-	var data [][]domain.LeagueTopUsers
+	var data [][]domain.UserRating
 	err = resp.DecodeTyped(&data)
 	if err != nil {
 		return nil, fmt.Errorf("(tarantool.GetTopUsers) %w: %v", customErrors.ErrTarantoolDecode, err)
@@ -106,94 +91,24 @@ func (s *UsersStorage) GetTopUsers(ctx context.Context, count int) ([]domain.Lea
 	return data[0], nil
 }
 
-func (s *UsersStorage) updateLeagues() error {
+func (s *UsersStorage) GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error) {
 	resp, err := s.conn.Do(
-		tarantool.NewCallRequest("leagues_settings").
-			Args([]interface{}{}),
-	).GetResponse()
-	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
-	}
-
-	var settings [][]struct {
-		Id      int
-		UpCnt   int
-		StayCnt int
-	}
-	err = resp.DecodeTyped(&settings)
-	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolDecode, err)
-	}
-
-	leagueUsers := make([][]string, len(settings[0]))
-	for _, league := range settings[0] {
-		resp, err = s.conn.Do(
-			tarantool.NewCallRequest("league_users_pos").
-				Args([]interface{}{map[string]interface{}{
-					"league": league.Id,
-				}}),
-		).GetResponse()
-		if err != nil {
-			return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
-		}
-
-		var users [][]struct {
-			Name string
-		}
-		err = resp.DecodeTyped(&users)
-		if err != nil {
-			return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolDecode, err)
-		}
-
-		for _, user := range users[0] {
-			leagueUsers[len(settings[0])-league.Id-1] = append(leagueUsers[len(settings[0])-league.Id-1], user.Name)
-		}
-	}
-
-	upUsers := make([]string, 0)
-	downUsers := make([]string, 0)
-	for i, league := range leagueUsers[1:] {
-		cnt := math.Min(float64(len(league)), float64(settings[0][i+1].UpCnt))
-		users := league[0:int(cnt)]
-		leagueUsers[i] = append(users, leagueUsers[i]...)
-		leagueUsers[i+1] = leagueUsers[i+1][int(cnt):]
-
-		upUsers = append(upUsers, users...)
-
-		if settings[0][i].StayCnt < len(leagueUsers[i]) {
-			cnt := len(leagueUsers[i]) - settings[0][i].StayCnt
-			if len(leagueUsers[i])-cnt < len(users) {
-				users = leagueUsers[i][len(users):]
-			} else {
-				users = leagueUsers[i][len(leagueUsers[i])-cnt:]
-			}
-			leagueUsers[i+1] = append(users, leagueUsers[i+1]...)
-
-			downUsers = append(downUsers, users...)
-		}
-	}
-
-	_, err = s.conn.Do(
-		tarantool.NewCallRequest("league_change").
+		tarantool.NewCallRequest("users_nearby").
 			Args([]interface{}{map[string]interface{}{
-				"users": upUsers,
-				"up":    true,
-			}}),
+				"vkid":  vkid,
+				"limit": count,
+			}}).
+			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
+		return nil, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
-	_, err = s.conn.Do(
-		tarantool.NewCallRequest("league_change").
-			Args([]interface{}{map[string]interface{}{
-				"users": downUsers,
-				"up":    false,
-			}}),
-	).GetResponse()
+	var data [][]domain.UserRating
+	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return fmt.Errorf("(tarantool.updateLeagues) %w: %v", customErrors.ErrTarantoolExec, err)
+		return nil, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
-	return nil
+	return data[0], nil
 }
