@@ -22,17 +22,17 @@ func NewGameHandler(usersService UsersService, logger *zap.SugaredLogger) (*Game
 }
 
 type UsersTopResponse struct {
-	Users []domain.LeagueTopUsers `json:"users"`
+	Users []domain.UserRating `json:"users"`
 }
 
 func (h *GameHandler) GetTopUsers(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
-	offset, err := strconv.Atoi(req.URL.Query().Get("offset"))
-	if err != nil || offset <= 0 {
-		offset = 10
+	count, err := strconv.Atoi(req.URL.Query().Get("count"))
+	if err != nil || count <= 0 {
+		count = 10
 	}
 
-	usersTop, err := h.usersService.GetTopUsers(ctx, offset)
+	usersTop, err := h.usersService.GetTopUsers(ctx, count)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusInternalServerError,

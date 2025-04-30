@@ -11,7 +11,8 @@ import (
 
 type UsersStorage interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
-	GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error)
+	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
+	GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error)
 }
 
 type UsersService struct {
@@ -36,11 +37,21 @@ func (s *UsersService) UpdateUserRating(ctx context.Context, vkid int, newScore 
 	return nil
 }
 
-func (s *UsersService) GetTopUsers(ctx context.Context, count int) ([]domain.LeagueTopUsers, error) {
+func (s *UsersService) GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error) {
 	usersTop, err := s.storage.GetTopUsers(ctx, count)
 	if err != nil {
 		s.logger.Errorf("(usersService.GetTopUsers): %w", err)
 		return nil, fmt.Errorf("(usersService.GetTopUsers): %w", err)
+	}
+
+	return usersTop, nil
+}
+
+func (s *UsersService) GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error) {
+	usersTop, err := s.storage.GetNearbyUsers(ctx, vkid, count)
+	if err != nil {
+		s.logger.Errorf("(usersService.GetNearbyUsers): %w", err)
+		return nil, fmt.Errorf("(usersService.GetNearbyUsers): %w", err)
 	}
 
 	return usersTop, nil
