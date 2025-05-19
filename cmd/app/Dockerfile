@@ -13,5 +13,6 @@ FROM docker.io/library/golang:1.23
 WORKDIR /src
 
 COPY --from=build /src/app app
+COPY ./cmd/app/config.yml ./cmd/app/config.yml
 
 CMD ["./app"]

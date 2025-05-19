@@ -67,6 +67,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	shopStorage, err := storage.NewShopStorage(conn)
+	if err != nil {
+		log.Fatal(err)
+	}
 	authStorage, err := storage.NewAuthStorage(conn)
 	if err != nil {
 		log.Fatal(err)
@@ -79,6 +83,10 @@ func main() {
 		log.Fatal(err)
 	}
 	adminShopService, err := services.NewAdminShopService(adminShopStorage, sugarLogger)
+	if err != nil {
+		log.Fatal(err)
+	}
+	shopService, err := services.NewShopService(shopStorage, sugarLogger)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -99,6 +107,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init shop handler: %v", err)
 	}
+	shopHandler, err := handlers.NewShopHandler(shopService, sugarLogger)
+	if err != nil {
+		log.Fatalf("Failed to init shop handler: %v", err)
+	}
 	authHandler, err := handlers.NewAuthHandler(authService, sugarLogger)
 	if err != nil {
 		log.Fatalf("Failed to init auth handler: %v", err)
@@ -111,7 +123,13 @@ func main() {
 		log.Fatalf("Failed to init middleware handler: %v", err)
 	}
 
-	router := initRouter(authHandler, gameHandler, profileHandler, adminShopHandler, middlewareHandler)
+	router := initRouter(
+		authHandler,
+		gameHandler,
+		profileHandler,
+		adminShopHandler,
+		shopHandler,
+		middlewareHandler)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", appConfig.Server.Port),
@@ -150,6 +168,7 @@ func initRouter(
 	gameHandler *handlers.GameHandler,
 	profileHandler *handlers.ProfileHandler,
 	adminShopHandler *handlers.AdminShopHandler,
+	shopHandler *handlers.ShopHandler,
 	middlewareHandler *handlers.MiddlewareHandler) *mux.Router {
 
 	router := mux.NewRouter()
@@ -191,7 +210,7 @@ func initRouter(
 	adminShopRouter.HandleFunc("/task/delete", adminShopHandler.DeleteTask).Methods("POST", "OPTIONS")
 
 	shopRouter.Use(middlewareHandler.Auth)
-	shopRouter.HandleFunc("/tasks", nil).Methods("GET", "OPTIONS")
+	shopRouter.HandleFunc("/tasks", shopHandler.GetTasks).Methods("GET", "OPTIONS")
 
 	return router
 }
