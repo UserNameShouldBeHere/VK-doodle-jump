@@ -18,6 +18,19 @@ box.space.admins:format({
 
 box.space.admins:create_index('primary', {type = 'tree', parts = {'vkid'}})
 
+box.schema.func.drop('add_admins', {if_exists = true})
+box.schema.func.create('add_admins', {
+    body = [[
+        function(args)
+            box.space.admins:truncate({})
+
+            for _, vkid in ipairs(args.vkids) do
+                box.space.admins:insert({vkid})
+            end
+        end
+    ]]
+})
+
 box.schema.func.drop('is_admin', {if_exists = true})
 box.schema.func.create('is_admin', {
     body = [[
@@ -273,6 +286,7 @@ box.space.tasks:format({
     {name = 'id', type = 'unsigned'},
     {name = 'name', type = 'string'},
     {name = 'description', type = 'string'},
+    {name = 'is_superpower', type = 'boolean'},
     {name = 'reward', type = 'unsigned'},
     {name = 'token', type = 'string'},
     {name = 'last_update', type = 'datetime'},
@@ -298,6 +312,65 @@ box.schema.func.create('tasks_for_admin', {
                     task.token
                 }))
             end
+
+            return tasks
+        end
+    ]]
+})
+
+-- ===================================
+
+box.schema.space.create('user_tasks')
+
+box.space.user_tasks:format({
+    {name = 'vkid', type = 'unsigned'},
+    {name = 'task_id', type = 'unsigned'},
+})
+
+box.space.user_tasks:create_index('primary', {type = 'tree', parts = {'vkid'}})
+
+box.schema.func.drop('tasks', {if_exists = true})
+box.schema.func.create('tasks', {
+    body = [[
+        function(args)
+            local tasks = {}
+
+            for _, task in ipairs(box.space.tasks.index.last_update:select({})) do
+                user_task = box.space.user_tasks.index.primary:select({args.vkid})
+
+                completed = false
+
+                if (user_task[1] ~= nil) then
+                    completed = true
+                end
+
+                table.insert(tasks, box.tuple.new({
+                    task.description,
+                    completed
+                }))
+            end
+
+            return tasks
+        end
+    ]]
+})
+
+-- ===================================
+
+box.schema.space.create('shop')
+
+box.space.shop:format({
+    {name = 'vkid', type = 'unsigned'},
+    {name = 'completed_tasks', type = 'array'},
+})
+
+box.space.shop:create_index('primary', {type = 'tree', parts = {'vkid'}})
+
+box.schema.func.drop('tasks', {if_exists = true})
+box.schema.func.create('tasks', {
+    body = [[
+        function(args)
+            local tasks = {}
 
             return tasks
         end

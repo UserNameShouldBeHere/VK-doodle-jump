@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -16,33 +15,24 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
+	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/config"
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/handlers"
 	storage "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/repository/tarantool"
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/services"
 )
 
 func main() {
-	var (
-		backendHost          string
-		frontendHost         string
-		backendPort          int
-		frontendtort         int
-		leagueUpdateInterval int
-	)
-
-	flag.StringVar(&backendHost, "back-h", "127.0.0.1", "backend host")
-	flag.StringVar(&frontendHost, "front-h", "109.120.183.59", "frontend host")
-	flag.IntVar(&backendPort, "back-p", 3001, "backend port")
-	flag.IntVar(&frontendtort, "front-p", 443, "frontend port")
-	flag.IntVar(&leagueUpdateInterval, "l-update", 10, "league update interval in seconds")
-	flag.Parse()
+	appConfig, err := config.Parse("./cmd/app/config.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 	dialer := tarantool.NetDialer{
-		Address:  "localhost:3301",
-		User:     "admin",
-		Password: "pass",
+		Address:  fmt.Sprintf("%s:%d", appConfig.Server.DB.Host, appConfig.Server.DB.Port),
+		User:     appConfig.Server.DB.User,
+		Password: appConfig.Server.DB.Password,
 	}
 	opts := tarantool.Opts{
 		Timeout: time.Second,
@@ -54,7 +44,7 @@ func main() {
 		return
 	}
 
-	config := zap.Config{
+	loggerConfig := zap.Config{
 		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
 		Development:      true,
 		Encoding:         "console",
@@ -62,14 +52,14 @@ func main() {
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
 	}
-	logger, err := config.Build()
+	logger, err := loggerConfig.Build()
 	if err != nil {
 		log.Fatal(err)
 	}
 	sugarLogger := logger.Sugar()
 
 	storageCtx, storageCancel := context.WithCancel(context.Background())
-	usersStorage, err := storage.NewUsersStorage(storageCtx, conn, leagueUpdateInterval)
+	usersStorage, err := storage.NewUsersStorage(storageCtx, conn)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,6 +71,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	adminShopStorage.FillAdmins(context.Background(), appConfig.Server.DB.Admins)
 
 	usersService, err := services.NewUsersService(usersStorage, sugarLogger)
 	if err != nil {
@@ -103,7 +95,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to init profile handler: %v", err)
 	}
-	adminShopHandler, err := handlers.NewShopHandler(adminShopService, sugarLogger)
+	adminShopHandler, err := handlers.NewAdminShopHandler(adminShopService, sugarLogger)
 	if err != nil {
 		log.Fatalf("Failed to init shop handler: %v", err)
 	}
@@ -112,7 +104,7 @@ func main() {
 		log.Fatalf("Failed to init auth handler: %v", err)
 	}
 	middlewareHandler, err := handlers.NewMiddlewareHandler(
-		fmt.Sprintf("%s:%d", frontendHost, frontendtort),
+		fmt.Sprintf("%s:%d", appConfig.Client.Host, appConfig.Client.Port),
 		authService,
 		logger.Sugar())
 	if err != nil {
@@ -122,7 +114,7 @@ func main() {
 	router := initRouter(authHandler, gameHandler, profileHandler, adminShopHandler, middlewareHandler)
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", backendPort),
+		Addr:         fmt.Sprintf(":%d", appConfig.Server.Port),
 		Handler:      router,
 		ReadTimeout:  time.Second * 5,
 		WriteTimeout: time.Second * 5,
@@ -142,7 +134,7 @@ func main() {
 		}
 	}()
 
-	log.Printf("Starting server at http://%s:%d", backendHost, backendPort)
+	log.Printf("Starting server at http://%s:%d", appConfig.Server.Host, appConfig.Server.Port)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Server stopped with error: %v", err)
@@ -168,6 +160,7 @@ func initRouter(
 	authRouter := apiRouter.PathPrefix("/auth").Subrouter()
 	profileRouter := apiRouter.PathPrefix("/profile").Subrouter()
 	gameRouter := apiRouter.PathPrefix("/game").Subrouter()
+	adminShopRouter := apiRouter.PathPrefix("/admin").Subrouter()
 	shopRouter := apiRouter.PathPrefix("/shop").Subrouter()
 
 	authRouter.HandleFunc("/signin", authHandler.SignIn).Methods("POST", "OPTIONS")
@@ -178,22 +171,27 @@ func initRouter(
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.GetNearbyUsers).Methods("GET", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 
+	apiRouter.HandleFunc("/{vkid}/task/pass", nil).Methods("POST", "OPTIONS")
+
 	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")
 
+	adminShopRouter.Use(middlewareHandler.Auth)
+	adminShopRouter.Use(middlewareHandler.Admin)
+	adminShopRouter.HandleFunc("/promocodes", adminShopHandler.GetPromocodes).Methods("GET", "OPTIONS")
+	adminShopRouter.HandleFunc("/promocode/add", adminShopHandler.AddPromocode).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/promocode/update", adminShopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/promocode/delete", adminShopHandler.DeletePromocode).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/products", adminShopHandler.GetProducts).Methods("GET", "OPTIONS")
+	adminShopRouter.HandleFunc("/product/add", adminShopHandler.AddProduct).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/product/update", adminShopHandler.UpdateProduct).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/product/delete", adminShopHandler.DeleteProduct).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/tasks", adminShopHandler.GetTasks).Methods("GET", "OPTIONS")
+	adminShopRouter.HandleFunc("/task/add", adminShopHandler.AddTask).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/task/update", adminShopHandler.UpdateTask).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/task/delete", adminShopHandler.DeleteTask).Methods("POST", "OPTIONS")
+
 	shopRouter.Use(middlewareHandler.Auth)
-	shopRouter.Use(middlewareHandler.Admin)
-	shopRouter.HandleFunc("/promocodes", adminShopHandler.GetPromocodes).Methods("GET", "OPTIONS")
-	shopRouter.HandleFunc("/promocode/add", adminShopHandler.AddPromocode).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/promocode/update", adminShopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/promocode/delete", adminShopHandler.DeletePromocode).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/products", adminShopHandler.GetProducts).Methods("GET", "OPTIONS")
-	shopRouter.HandleFunc("/product/add", adminShopHandler.AddProduct).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/product/update", adminShopHandler.UpdateProduct).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/product/delete", adminShopHandler.DeleteProduct).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/tasks", adminShopHandler.GetTasks).Methods("GET", "OPTIONS")
-	shopRouter.HandleFunc("/task/add", adminShopHandler.AddTask).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/task/update", adminShopHandler.UpdateTask).Methods("POST", "OPTIONS")
-	shopRouter.HandleFunc("/task/delete", adminShopHandler.DeleteTask).Methods("POST", "OPTIONS")
+	shopRouter.HandleFunc("/tasks", nil).Methods("GET", "OPTIONS")
 
 	return router
 }

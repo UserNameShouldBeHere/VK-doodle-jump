@@ -1,0 +1,13 @@
+client:
+  host: "109.120.183.59"
+  port: 443
+
+server:
+  host: "127.0.0.1"
+  port: 3001
+
+  db:
+    host: "tarantool"
+    port: 3301
+    user: "admin"
+    password: "pass"

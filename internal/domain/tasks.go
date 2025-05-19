@@ -7,3 +7,8 @@ type TaskAdminData struct {
 	Reward      int    `json:"reward"`
 	Token       string `json:"token"`
 }
+
+type TaskData struct {
+	Description string `json:"description"`
+	Completed   bool   `json:"completed"`
+}

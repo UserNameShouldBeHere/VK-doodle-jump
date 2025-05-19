@@ -12,14 +12,12 @@ import (
 )
 
 type UsersStorage struct {
-	conn                 *tarantool.Connection
-	leagueUpdateInterval int
+	conn *tarantool.Connection
 }
 
-func NewUsersStorage(ctx context.Context, conn *tarantool.Connection, leagueUpdateInterval int) (*UsersStorage, error) {
+func NewUsersStorage(ctx context.Context, conn *tarantool.Connection) (*UsersStorage, error) {
 	storage := &UsersStorage{
-		leagueUpdateInterval: leagueUpdateInterval,
-		conn:                 conn,
+		conn: conn,
 	}
 
 	return storage, nil
