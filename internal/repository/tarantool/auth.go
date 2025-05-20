@@ -23,7 +23,7 @@ func NewAuthStorage(conn *tarantool.Connection) (*AuthStorage, error) {
 	return storage, nil
 }
 
-func (s *AuthStorage) SignIn(ctx context.Context, signInData domain.SignInData) error {
+func (s *AuthStorage) SignIn(ctx context.Context, signInData domain.SignInData) (bool, error) {
 	resp, err := s.conn.Do(
 		tarantool.NewCallRequest("has_user").
 			Args([]interface{}{map[string]interface{}{
@@ -31,28 +31,30 @@ func (s *AuthStorage) SignIn(ctx context.Context, signInData domain.SignInData) 
 			}}),
 	).GetResponse()
 	if err != nil {
-		return fmt.Errorf("(tarantool.SignIn) %w: %v", customErrors.ErrTarantoolExec, err)
+		return false, fmt.Errorf("(tarantool.SignIn) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	var data []bool
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return fmt.Errorf("(tarantool.SignIn) %w: %v", customErrors.ErrTarantoolDecode, err)
+		return false, fmt.Errorf("(tarantool.SignIn) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
+	isFirstTime := false
 	if data[0] {
 		err = s.updateSession(ctx, signInData)
 		if err != nil {
-			return fmt.Errorf("(tarantool.SignIn) %w", err)
+			return false, fmt.Errorf("(tarantool.SignIn) %w", err)
 		}
 	} else {
 		err = s.createUser(ctx, signInData)
 		if err != nil {
-			return fmt.Errorf("(tarantool.SignIn) %w", err)
+			return false, fmt.Errorf("(tarantool.SignIn) %w", err)
 		}
+		isFirstTime = true
 	}
 
-	return nil
+	return isFirstTime, nil
 }
 
 func (s *AuthStorage) Check(ctx context.Context, vkid int, accessToken string) (bool, error) {
@@ -71,27 +73,6 @@ func (s *AuthStorage) Check(ctx context.Context, vkid int, accessToken string) (
 	err = resp.DecodeTyped(&data)
 	if err != nil {
 		return false, fmt.Errorf("(tarantool.Check) %w: %v", customErrors.ErrTarantoolDecode, err)
-	}
-
-	return data[0], nil
-}
-
-func (s *AuthStorage) CheckToken(ctx context.Context, vkid int, accessToken string) (bool, error) {
-	resp, err := s.conn.Do(
-		tarantool.NewCallRequest("check_user_token").
-			Args([]interface{}{map[string]interface{}{
-				"vkid":  vkid,
-				"token": accessToken,
-			}}),
-	).GetResponse()
-	if err != nil {
-		return false, fmt.Errorf("(tarantool.CheckToken) %w: %v", customErrors.ErrTarantoolExec, err)
-	}
-
-	var data []bool
-	err = resp.DecodeTyped(&data)
-	if err != nil {
-		return false, fmt.Errorf("(tarantool.CheckToken) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	return data[0], nil

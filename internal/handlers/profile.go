@@ -17,6 +17,7 @@ type UsersService interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
 	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
 	GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error)
+	UserScore(ctx context.Context, vkid int) (int, error)
 }
 
 type ProfileHandler struct {
@@ -135,6 +136,49 @@ func (h *ProfileHandler) GetNearbyUsers(w http.ResponseWriter, req *http.Request
 		Status: http.StatusOK,
 		Data: UsersTopResponse{
 			Users: usersTop,
+		},
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type UserScoreResponse struct {
+	Score int `json:"score"`
+}
+
+func (h *ProfileHandler) GetScore(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	score, err := h.usersService.UserScore(ctx, vkid)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusInternalServerError,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data: UserScoreResponse{
+			Score: score,
 		},
 	})
 	if err != nil {

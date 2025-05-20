@@ -13,6 +13,7 @@ type UsersStorage interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
 	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
 	GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error)
+	UserScore(ctx context.Context, vkid int) (int, error)
 }
 
 type UsersService struct {
@@ -55,4 +56,14 @@ func (s *UsersService) GetNearbyUsers(ctx context.Context, vkid, count int) ([]d
 	}
 
 	return usersTop, nil
+}
+
+func (s *UsersService) UserScore(ctx context.Context, vkid int) (int, error) {
+	score, err := s.storage.UserScore(ctx, vkid)
+	if err != nil {
+		s.logger.Errorf("(usersService.UserScore): %w", err)
+		return 0, fmt.Errorf("(usersService.UserScore): %w", err)
+	}
+
+	return score, nil
 }

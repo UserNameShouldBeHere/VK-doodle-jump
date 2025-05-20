@@ -286,10 +286,10 @@ box.space.tasks:format({
     {name = 'id', type = 'unsigned'},
     {name = 'name', type = 'string'},
     {name = 'description', type = 'string'},
-    {name = 'is_superpower', type = 'boolean'},
     {name = 'reward', type = 'unsigned'},
     {name = 'token', type = 'string'},
     {name = 'last_update', type = 'datetime'},
+    -- {name = 'is_superpower', type = 'boolean'},
 })
 
 box.space.tasks:create_index('primary', {sequence = 'tasks_id_seq', type = 'tree', parts = {'id'}})

@@ -14,7 +14,7 @@ import (
 )
 
 type AuthService interface {
-	SignIn(ctx context.Context, req domain.SignInRequest) (domain.SignInData, error)
+	SignIn(ctx context.Context, req domain.SignInRequest) (domain.SignInData, bool, error)
 	Check(ctx context.Context, session domain.SignInData, state, deviceId string) (domain.SignInData, error)
 	Logout(ctx context.Context, session domain.SignInData, state, deviceId string) error
 	IsAdmin(ctx context.Context, vkid int) (bool, error)
@@ -33,9 +33,10 @@ func NewAuthHandler(authService AuthService, logger *zap.SugaredLogger) (*AuthHa
 }
 
 type signInResponse struct {
-	VkId   int    `json:"vkid"`
-	Name   string `json:"name"`
-	Avatar string `json:"avatar"`
+	VkId        int    `json:"vkid"`
+	Name        string `json:"name"`
+	Avatar      string `json:"avatar"`
+	IsFirstTime bool   `json:"is_first_time"`
 }
 
 func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
@@ -68,7 +69,7 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	signInData, err := h.authService.SignIn(ctx, reqData)
+	signInData, isFirstTime, err := h.authService.SignIn(ctx, reqData)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,
@@ -112,9 +113,10 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
 		Data: signInResponse{
-			VkId:   signInData.User.VkId,
-			Name:   signInData.User.Name,
-			Avatar: signInData.User.Avatar,
+			VkId:        signInData.User.VkId,
+			Name:        signInData.User.Name,
+			Avatar:      signInData.User.Avatar,
+			IsFirstTime: isFirstTime,
 		},
 	})
 	if err != nil {

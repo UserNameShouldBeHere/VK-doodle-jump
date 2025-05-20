@@ -110,3 +110,24 @@ func (s *UsersStorage) GetNearbyUsers(ctx context.Context, vkid, count int) ([]d
 
 	return data[0], nil
 }
+
+func (s *UsersStorage) UserScore(ctx context.Context, vkid int) (int, error) {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("user_score").
+			Args([]interface{}{map[string]interface{}{
+				"vkid": vkid,
+			}}).
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return 0, fmt.Errorf("(tarantool.UserScore) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	var score []int
+	err = resp.DecodeTyped(&score)
+	if err != nil {
+		return 0, fmt.Errorf("(tarantool.UserScore) %w: %v", customErrors.ErrTarantoolDecode, err)
+	}
+
+	return score[0], nil
+}

@@ -189,6 +189,7 @@ func initRouter(
 	profileRouter.Use(middlewareHandler.Auth)
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.GetNearbyUsers).Methods("GET", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
+	profileRouter.HandleFunc("/{vkid}/score", profileHandler.GetScore).Methods("GET", "OPTIONS")
 
 	apiRouter.HandleFunc("/{vkid}/task/pass", nil).Methods("POST", "OPTIONS")
 
@@ -209,7 +210,7 @@ func initRouter(
 	adminShopRouter.HandleFunc("/task/update", adminShopHandler.UpdateTask).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/task/delete", adminShopHandler.DeleteTask).Methods("POST", "OPTIONS")
 
-	shopRouter.Use(middlewareHandler.Auth)
+	// shopRouter.Use(middlewareHandler.Auth)
 	shopRouter.HandleFunc("/tasks", shopHandler.GetTasks).Methods("GET", "OPTIONS")
 
 	return router

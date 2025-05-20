@@ -17,7 +17,7 @@ import (
 )
 
 type AuthStorage interface {
-	SignIn(ctx context.Context, signInData domain.SignInData) error
+	SignIn(ctx context.Context, signInData domain.SignInData) (bool, error)
 	Check(ctx context.Context, vkid int, accessToken string) (bool, error)
 	Logout(ctx context.Context, vkid int) error
 	GetUserData(ctx context.Context, vkid int) (domain.UserHeader, error)
@@ -71,7 +71,7 @@ type infoResponse struct {
 	User userInfo `json:"user"`
 }
 
-func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (domain.SignInData, error) {
+func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (domain.SignInData, bool, error) {
 	authUrl := s.oauthUrl + "/auth"
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
@@ -86,17 +86,17 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 	errResp, err := s.apiCall(authUrl, data, authResp)
 	if err != nil {
 		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrFailedToCallApi, err)
-		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %w", customErrors.ErrFailedToCallApi, err)
+		return domain.SignInData{}, false, fmt.Errorf("(authService.SignIn) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
 		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
-		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
+		return domain.SignInData{}, false, fmt.Errorf("(authService.SignIn) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	if req.State != authResp.State {
 		s.logger.Errorf("(authService.SignIn) %v", customErrors.ErrStateMismatch)
-		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w", customErrors.ErrStateMismatch)
+		return domain.SignInData{}, false, fmt.Errorf("(authService.SignIn) %w", customErrors.ErrStateMismatch)
 	}
 
 	infoUrl := s.oauthUrl + "/user_info"
@@ -108,12 +108,12 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 	errResp, err = s.apiCall(infoUrl, data, infoResp)
 	if err != nil {
 		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrFailedToCallApi, err)
-		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %w", customErrors.ErrFailedToCallApi, err)
+		return domain.SignInData{}, false, fmt.Errorf("(authService.SignIn) %w: %w", customErrors.ErrFailedToCallApi, err)
 	}
 
 	if errResp.Err != "" {
 		s.logger.Errorf("(authService.SignIn) %v: %v", customErrors.ErrRecievedFromApi, errResp.Desc)
-		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
+		return domain.SignInData{}, false, fmt.Errorf("(authService.SignIn) %w: %v", customErrors.ErrRecievedFromApi, errResp.Err)
 	}
 
 	signInData := domain.SignInData{
@@ -125,15 +125,15 @@ func (s *AuthService) SignIn(ctx context.Context, req domain.SignInRequest) (dom
 		AccessToken: authResp.AccessToken,
 	}
 
-	err = s.authStorage.SignIn(ctx, signInData)
+	isFirstTime, err := s.authStorage.SignIn(ctx, signInData)
 	if err != nil {
 		s.logger.Errorf("(authService.SignIn) %v", err)
-		return domain.SignInData{}, fmt.Errorf("(authService.SignIn) %w", err)
+		return domain.SignInData{}, false, fmt.Errorf("(authService.SignIn) %w", err)
 	}
 
 	signInData.RefreshToken = authResp.RefreshToken
 
-	return signInData, nil
+	return signInData, isFirstTime, nil
 }
 
 func (s *AuthService) Check(
@@ -214,7 +214,7 @@ func (s *AuthService) Check(
 		RefreshToken: refreshResp.RefreshToken,
 	}
 
-	err = s.authStorage.SignIn(ctx, signInData)
+	_, err = s.authStorage.SignIn(ctx, signInData)
 	if err != nil {
 		s.logger.Errorf("(authService.Check) %v", err)
 		return domain.SignInData{}, fmt.Errorf("(authService.Check) %w", err)
