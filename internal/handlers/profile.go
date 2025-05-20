@@ -15,8 +15,8 @@ import (
 
 type UsersService interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
-	GetTopUsers(ctx context.Context, count int) ([]domain.UserRating, error)
-	GetNearbyUsers(ctx context.Context, vkid, count int) ([]domain.UserRating, error)
+	GetTopUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
+	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
 	UserScore(ctx context.Context, vkid int) (int, error)
 }
 
@@ -103,7 +103,11 @@ func (h *ProfileHandler) UpdateRating(w http.ResponseWriter, req *http.Request) 
 func (h *ProfileHandler) GetNearbyUsers(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
-	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	vkIdStr, err := req.Cookie("vkid")
+	if err != nil {
+		vkIdStr = &http.Cookie{}
+	}
+	vkId, err := strconv.Atoi(vkIdStr.Value)
 	if err != nil {
 		h.logger.Errorf("failed to convert vkid to int: %v", err)
 		err = WriteResponse(w, ResponseData{
@@ -115,12 +119,13 @@ func (h *ProfileHandler) GetNearbyUsers(w http.ResponseWriter, req *http.Request
 		}
 		return
 	}
+
 	count, err := strconv.Atoi(req.URL.Query().Get("count"))
 	if err != nil || count <= 0 {
 		count = 10
 	}
 
-	usersTop, err := h.usersService.GetNearbyUsers(ctx, vkid, count)
+	usersTop, err := h.usersService.GetNearbyUsers(ctx, vkId, count)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusInternalServerError,
@@ -134,9 +139,7 @@ func (h *ProfileHandler) GetNearbyUsers(w http.ResponseWriter, req *http.Request
 
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
-		Data: UsersTopResponse{
-			Users: usersTop,
-		},
+		Data:   usersTop,
 	})
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)

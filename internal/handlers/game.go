@@ -5,8 +5,6 @@ import (
 	"strconv"
 
 	"go.uber.org/zap"
-
-	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
 )
 
 type GameHandler struct {
@@ -21,18 +19,26 @@ func NewGameHandler(usersService UsersService, logger *zap.SugaredLogger) (*Game
 	}, nil
 }
 
-type UsersTopResponse struct {
-	Users []domain.UserRating `json:"users"`
-}
-
 func (h *GameHandler) GetTopUsers(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
+
+	vkIdStr, err := req.Cookie("vkid")
+	if err != nil {
+		vkIdStr = &http.Cookie{}
+	}
+	vkId, err := strconv.Atoi(vkIdStr.Value)
+	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
+
+		vkId = 0
+	}
+
 	count, err := strconv.Atoi(req.URL.Query().Get("count"))
 	if err != nil || count <= 0 {
 		count = 10
 	}
 
-	usersTop, err := h.usersService.GetTopUsers(ctx, count)
+	usersTop, err := h.usersService.GetTopUsers(ctx, vkId, count)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusInternalServerError,
@@ -46,9 +52,7 @@ func (h *GameHandler) GetTopUsers(w http.ResponseWriter, req *http.Request) {
 
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
-		Data: UsersTopResponse{
-			Users: usersTop,
-		},
+		Data:   usersTop,
 	})
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)

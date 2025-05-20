@@ -186,7 +186,7 @@ func initRouter(
 	authRouter.HandleFunc("/check", authHandler.Check).Methods("POST", "OPTIONS")
 	authRouter.HandleFunc("/logout", authHandler.Logout).Methods("POST", "OPTIONS")
 
-	profileRouter.Use(middlewareHandler.Auth)
+	// profileRouter.Use(middlewareHandler.Auth)
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.GetNearbyUsers).Methods("GET", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/score", profileHandler.GetScore).Methods("GET", "OPTIONS")

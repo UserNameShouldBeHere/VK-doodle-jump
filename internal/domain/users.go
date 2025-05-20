@@ -11,6 +11,11 @@ type UserRating struct {
 	Score int    `json:"score"`
 }
 
+type UserRatingWithPos struct {
+	Users      []UserRating `json:"users"`
+	CurrentPos int          `json:"current_pos"`
+}
+
 // type LeagueTopUsers struct {
 // 	League string       `json:"league"`
 // 	Users  []UserRating `json:"users"`

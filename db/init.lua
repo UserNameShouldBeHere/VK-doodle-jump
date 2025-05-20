@@ -135,12 +135,21 @@ box.schema.func.create('users_top', {
         function(args)
             local lim = args.limit or 10
             local res = {}
+
+            cnt = 0
+            pos = -1
             
             for _, user in ipairs(box.space.users.index.score_update:select({}, {limit = lim})) do
                 table.insert(res, box.tuple.new({user.name, user.max_score}))
+                
+                if (user.vkid == args.vkid) then
+                    pos = cnt
+                end
+
+                cnt = cnt + 1
             end
 
-            return res
+            return box.tuple.new({res, pos})
         end
     ]]
 })
@@ -169,7 +178,7 @@ box.schema.func.create('users_nearby', {
                 upCnt = upCnt + 1
             end
 
-            return res
+            return box.tuple.new({res, downCnt})
         end
     ]]
 })
