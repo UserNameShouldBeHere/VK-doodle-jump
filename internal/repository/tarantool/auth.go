@@ -173,6 +173,9 @@ func (s *AuthStorage) createUser(ctx context.Context, signInData domain.SignInDa
 			}).
 			Context(ctx),
 	).Get()
+	if err != nil {
+		return fmt.Errorf("(tarantool.createUser) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
 
 	_, err = s.conn.Do(
 		tarantool.NewInsertRequest("game").
@@ -182,7 +185,6 @@ func (s *AuthStorage) createUser(ctx context.Context, signInData domain.SignInDa
 			}).
 			Context(ctx),
 	).Get()
-
 	if err != nil {
 		return fmt.Errorf("(tarantool.createUser) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
