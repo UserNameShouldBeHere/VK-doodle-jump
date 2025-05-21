@@ -346,7 +346,7 @@ box.schema.func.create('tasks', {
             local tasks = {}
 
             for _, task in ipairs(box.space.tasks.index.last_update:select({})) do
-                user_task = box.space.user_tasks.index.primary:select({args.vkid})
+                user_task = box.space.user_tasks:select({args.vkid})
 
                 completed = false
 
