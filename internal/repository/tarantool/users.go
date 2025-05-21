@@ -132,3 +132,45 @@ func (s *UsersStorage) UserScore(ctx context.Context, vkid int) (int, error) {
 
 	return score[0], nil
 }
+
+func (s *UsersStorage) GetSuperpowers(ctx context.Context, vkid int) (int, error) {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("superpowers").
+			Args([]interface{}{map[string]interface{}{
+				"vkid": vkid,
+			}}).
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return 0, fmt.Errorf("(tarantool.GetSuperpowers) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	var superpowers []int
+	err = resp.DecodeTyped(&superpowers)
+	if err != nil {
+		return 0, fmt.Errorf("(tarantool.GetSuperpowers) %w: %v", customErrors.ErrTarantoolDecode, err)
+	}
+
+	return superpowers[0], nil
+}
+
+func (s *UsersStorage) UseSuperpower(ctx context.Context, vkid int) error {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("use_superpower").
+			Args([]interface{}{map[string]interface{}{
+				"vkid": vkid,
+			}}).
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return fmt.Errorf("(tarantool.UseSuperpower) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	var ok []bool
+	err = resp.DecodeTyped(&ok)
+	if err != nil || !ok[0] {
+		return fmt.Errorf("(tarantool.UseSuperpower) %w: %v", customErrors.ErrTarantoolDecode, err)
+	}
+
+	return nil
+}

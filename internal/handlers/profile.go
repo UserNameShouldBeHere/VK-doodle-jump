@@ -18,6 +18,8 @@ type UsersService interface {
 	GetTopUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
 	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
 	UserScore(ctx context.Context, vkid int) (int, error)
+	GetSuperpowers(ctx context.Context, vkid int) (int, error)
+	UseSuperpower(ctx context.Context, vkid int) error
 }
 
 type ProfileHandler struct {
@@ -39,7 +41,11 @@ type UpdateRatingRequest struct {
 func (h *ProfileHandler) UpdateRating(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
-	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	vkIdStr, err := req.Cookie("vkid")
+	if err != nil {
+		vkIdStr = &http.Cookie{}
+	}
+	vkId, err := strconv.Atoi(vkIdStr.Value)
 	if err != nil {
 		h.logger.Errorf("failed to convert vkid to int: %v", err)
 		err = WriteResponse(w, ResponseData{
@@ -79,7 +85,7 @@ func (h *ProfileHandler) UpdateRating(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	err = h.usersService.UpdateUserRating(ctx, vkid, reqData.Score)
+	err = h.usersService.UpdateUserRating(ctx, vkId, reqData.Score)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusInternalServerError,
@@ -153,7 +159,11 @@ type UserScoreResponse struct {
 func (h *ProfileHandler) GetScore(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 
-	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	vkIdStr, err := req.Cookie("vkid")
+	if err != nil {
+		vkIdStr = &http.Cookie{}
+	}
+	vkId, err := strconv.Atoi(vkIdStr.Value)
 	if err != nil {
 		h.logger.Errorf("failed to convert vkid to int: %v", err)
 		err = WriteResponse(w, ResponseData{
@@ -166,7 +176,7 @@ func (h *ProfileHandler) GetScore(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	score, err := h.usersService.UserScore(ctx, vkid)
+	score, err := h.usersService.UserScore(ctx, vkId)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusInternalServerError,
@@ -183,6 +193,86 @@ func (h *ProfileHandler) GetScore(w http.ResponseWriter, req *http.Request) {
 		Data: UserScoreResponse{
 			Score: score,
 		},
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type SuperpowersResponse struct {
+	Superpowers int `json:"superpowers"`
+}
+
+func (h *ProfileHandler) GetSuperpowers(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	superpowers, err := h.usersService.GetSuperpowers(ctx, vkid)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusOK,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data: SuperpowersResponse{
+			Superpowers: superpowers,
+		},
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *ProfileHandler) UseSuperpower(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.usersService.UseSuperpower(ctx, vkid)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusNotModified,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
 	})
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)

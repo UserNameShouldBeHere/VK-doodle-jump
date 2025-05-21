@@ -11,7 +11,6 @@ import (
 
 type ShopService interface {
 	GetTasks(ctx context.Context, vkid int) ([]domain.TaskData, error)
-	PassTask(ctx context.Context, vkid int, taskId int) error
 }
 
 type ShopHandler struct {
@@ -68,16 +67,6 @@ func (h *ShopHandler) GetTasks(w http.ResponseWriter, req *http.Request) {
 		Data: TasksResponse{
 			Tasks: tasks,
 		},
-	})
-	if err != nil {
-		h.logger.Errorf("error at writing response: %v", err)
-	}
-}
-
-func (h *ShopHandler) PassTask(w http.ResponseWriter, req *http.Request) {
-	err := WriteResponse(w, ResponseData{
-		Status: http.StatusOK,
-		Data:   nil,
 	})
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)

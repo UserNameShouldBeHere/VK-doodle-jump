@@ -42,7 +42,3 @@ func (s *ShopStorage) GetTasks(ctx context.Context, vkid int) ([]domain.TaskData
 
 	return data[0], nil
 }
-
-func (s *ShopStorage) PassTask(ctx context.Context, vkid int, taskId int) error {
-	return nil
-}

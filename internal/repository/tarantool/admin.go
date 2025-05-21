@@ -309,7 +309,6 @@ func (s *AdminShopStorage) AddTask(ctx context.Context, newTask domain.TaskAdmin
 				nil,
 				newTask.Name,
 				newTask.Description,
-				newTask.Reward,
 				newTask.Token,
 				datetime,
 			}).
@@ -339,8 +338,7 @@ func (s *AdminShopStorage) UpdateTask(ctx context.Context, newTask domain.TaskAd
 			Operations(tarantool.NewOperations().
 				Assign(1, newTask.Name).
 				Assign(2, newTask.Description).
-				Assign(3, newTask.Reward).
-				Assign(5, datetime),
+				Assign(4, datetime),
 			).
 			Context(ctx),
 	).Get()
@@ -362,6 +360,22 @@ func (s *AdminShopStorage) DeleteTask(ctx context.Context, id int) error {
 
 	if err != nil {
 		return fmt.Errorf("(tarantool.DeleteTask) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	return nil
+}
+
+func (s *AdminShopStorage) AddSuperpower(ctx context.Context, vkid int, task string) error {
+	_, err := s.conn.Do(
+		tarantool.NewCallRequest("add_superpower").
+			Args([]interface{}{map[string]interface{}{
+				"vkid":  vkid,
+				"token": task,
+			}}).
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddSuperpower) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
 	return nil

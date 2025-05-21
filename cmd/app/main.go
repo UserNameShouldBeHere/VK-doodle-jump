@@ -190,13 +190,13 @@ func initRouter(
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.GetNearbyUsers).Methods("GET", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/score", profileHandler.GetScore).Methods("GET", "OPTIONS")
-
-	apiRouter.HandleFunc("/{vkid}/task/pass", nil).Methods("POST", "OPTIONS")
+	profileRouter.HandleFunc("/{vkid}/superpowers", profileHandler.GetSuperpowers).Methods("GET", "OPTIONS")
+	profileRouter.HandleFunc("/{vkid}/superpower/use", profileHandler.UseSuperpower).Methods("POST", "OPTIONS")
 
 	gameRouter.HandleFunc("/rating/top", gameHandler.GetTopUsers).Methods("GET", "OPTIONS")
 
-	adminShopRouter.Use(middlewareHandler.Auth)
-	adminShopRouter.Use(middlewareHandler.Admin)
+	// adminShopRouter.Use(middlewareHandler.Auth)
+	// adminShopRouter.Use(middlewareHandler.Admin)
 	adminShopRouter.HandleFunc("/promocodes", adminShopHandler.GetPromocodes).Methods("GET", "OPTIONS")
 	adminShopRouter.HandleFunc("/promocode/add", adminShopHandler.AddPromocode).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/promocode/update", adminShopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
@@ -209,6 +209,8 @@ func initRouter(
 	adminShopRouter.HandleFunc("/task/add", adminShopHandler.AddTask).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/task/update", adminShopHandler.UpdateTask).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/task/delete", adminShopHandler.DeleteTask).Methods("POST", "OPTIONS")
+
+	apiRouter.HandleFunc("/{vkid}/task", adminShopHandler.PassTask).Methods("POST", "OPTIONS")
 
 	// shopRouter.Use(middlewareHandler.Auth)
 	shopRouter.HandleFunc("/tasks", shopHandler.GetTasks).Methods("GET", "OPTIONS")

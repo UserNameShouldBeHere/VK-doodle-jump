@@ -2,11 +2,14 @@ package services
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	"github.com/golang-jwt/jwt"
 )
 
 type AdminShopStorage interface {
@@ -22,17 +25,27 @@ type AdminShopStorage interface {
 	AddTask(ctx context.Context, newTask domain.TaskAdminData) error
 	UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error
 	DeleteTask(ctx context.Context, id int) error
+	AddSuperpower(ctx context.Context, vkid int, task string) error
 }
 
 type AdminShopService struct {
 	shopStorage AdminShopStorage
 	logger      *zap.SugaredLogger
+	jwtKey      []byte
 }
 
 func NewAdminShopService(shopStorage AdminShopStorage, logger *zap.SugaredLogger) (*AdminShopService, error) {
+	jwtKey := make([]byte, 16)
+	_, err := rand.Read(jwtKey)
+	if err != nil {
+		logger.Errorf("(adminShopService.NewAdminShopService): %w", err)
+		return nil, fmt.Errorf("(adminShopService.NewAdminShopService): %w", err)
+	}
+
 	return &AdminShopService{
 		shopStorage: shopStorage,
 		logger:      logger,
+		jwtKey:      jwtKey,
 	}, nil
 }
 
@@ -127,7 +140,15 @@ func (s *AdminShopService) GetTasks(ctx context.Context) ([]domain.TaskAdminData
 }
 
 func (s *AdminShopService) AddTask(ctx context.Context, newTask domain.TaskAdminData) error {
-	err := s.shopStorage.AddTask(ctx, newTask)
+	token, err := s.createToken()
+	if err != nil {
+		s.logger.Errorf("(adminShopService.AddTask): %w", err)
+		return fmt.Errorf("(adminShopService.AddTask): %w", err)
+	}
+
+	newTask.Token = token
+
+	err = s.shopStorage.AddTask(ctx, newTask)
 	if err != nil {
 		s.logger.Errorf("(adminShopService.AddTask): %w", err)
 		return fmt.Errorf("(adminShopService.AddTask): %w", err)
@@ -151,6 +172,54 @@ func (s *AdminShopService) DeleteTask(ctx context.Context, id int) error {
 	if err != nil {
 		s.logger.Errorf("failed to delete task: %w", err)
 		return fmt.Errorf("(services.DeleteTask): %w", err)
+	}
+
+	return nil
+}
+
+func (s *AdminShopService) AddSuperpower(ctx context.Context, vkid int, task string) error {
+	err := s.validateToken(task)
+	if err != nil {
+		s.logger.Errorf("(adminShopService.AddSuperpower): %w", err)
+		return fmt.Errorf("(adminShopService.AddSuperpower): %w", err)
+	}
+
+	err = s.shopStorage.AddSuperpower(ctx, vkid, task)
+	if err != nil {
+		s.logger.Errorf("(adminShopService.AddSuperpower): %w", err)
+		return fmt.Errorf("(adminShopService.AddSuperpower): %w", err)
+	}
+
+	return nil
+}
+
+type myCustomClaims struct {
+	jwt.StandardClaims
+}
+
+func (s *AdminShopService) createToken() (string, error) {
+	claims := jwt.StandardClaims{
+		IssuedAt: time.Now().Unix(),
+		Issuer:   "mail-jumper",
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString(s.jwtKey)
+	if err != nil {
+		return "", fmt.Errorf("(adminShopService.createToken): %w", err)
+	}
+
+	return signedToken, nil
+}
+
+func (s *AdminShopService) validateToken(token string) error {
+	_, err := jwt.Parse(token,
+		func(token *jwt.Token) (interface{}, error) {
+			return s.jwtKey, nil
+		},
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil

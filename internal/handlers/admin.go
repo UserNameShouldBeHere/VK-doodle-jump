@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
+	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
 
@@ -23,6 +25,7 @@ type AdminShopService interface {
 	AddTask(ctx context.Context, newTask domain.TaskAdminData) error
 	UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error
 	DeleteTask(ctx context.Context, id int) error
+	AddSuperpower(ctx context.Context, vkid int, task string) error
 }
 
 type AdminShopHandler struct {
@@ -602,6 +605,74 @@ func (h *AdminShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) 
 			h.logger.Errorf("error at writing response: %v", err)
 		}
 
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type PassTaskRequest struct {
+	Token string `json:"token"`
+}
+
+func (h *AdminShopHandler) PassTask(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	vkid, err := strconv.Atoi(mux.Vars(req)["vkid"])
+	if err != nil {
+		h.logger.Errorf("failed to convert vkid to int: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	var reqData PassTaskRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.AddSuperpower(ctx, vkid, reqData.Token)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusOK,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
 		return
 	}
 

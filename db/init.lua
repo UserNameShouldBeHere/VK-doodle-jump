@@ -295,16 +295,15 @@ box.space.tasks:format({
     {name = 'id', type = 'unsigned'},
     {name = 'name', type = 'string'},
     {name = 'description', type = 'string'},
-    {name = 'reward', type = 'unsigned'},
     {name = 'token', type = 'string'},
     {name = 'last_update', type = 'datetime'},
-    -- {name = 'is_superpower', type = 'boolean'},
 })
 
 box.space.tasks:create_index('primary', {sequence = 'tasks_id_seq', type = 'tree', parts = {'id'}})
 box.space.tasks:create_index('last_update', {type = 'tree', parts = {
     {'last_update', sort_order = 'desc'}
 }})
+box.space.tasks:create_index('token', {type = 'tree', parts = {'token'}})
 
 box.schema.func.drop('tasks_for_admin', {if_exists = true})
 box.schema.func.create('tasks_for_admin', {
@@ -317,7 +316,6 @@ box.schema.func.create('tasks_for_admin', {
                     task.id,
                     task.name,
                     task.description,
-                    task.reward,
                     task.token
                 }))
             end
@@ -336,7 +334,10 @@ box.space.user_tasks:format({
     {name = 'task_id', type = 'unsigned'},
 })
 
-box.space.user_tasks:create_index('primary', {type = 'tree', parts = {'vkid'}})
+box.space.user_tasks:create_index('user_task', {type = 'tree', parts = {
+    {'vkid'},
+    {'task_id'}
+}})
 
 box.schema.func.drop('tasks', {if_exists = true})
 box.schema.func.create('tasks', {
@@ -366,22 +367,54 @@ box.schema.func.create('tasks', {
 
 -- ===================================
 
-box.schema.space.create('shop')
+box.schema.space.create('game')
 
-box.space.shop:format({
+box.space.game:format({
     {name = 'vkid', type = 'unsigned'},
-    {name = 'completed_tasks', type = 'array'},
+    {name = 'superpowers', type = 'unsigned'},
 })
 
-box.space.shop:create_index('primary', {type = 'tree', parts = {'vkid'}})
+box.space.game:create_index('primary', {type = 'tree', parts = {'vkid'}})
 
-box.schema.func.drop('tasks', {if_exists = true})
-box.schema.func.create('tasks', {
+box.schema.func.drop('use_superpower', {if_exists = true})
+box.schema.func.create('use_superpower', {
     body = [[
         function(args)
-            local tasks = {}
+            if (box.space.game.index.primary:select({args.vkid})[1]['superpowers'] > 0) then
+                box.space.game:update(args.vkid, {{'-', 2, 1}})
+                return true
+            end
 
-            return tasks
+            return false
+        end
+    ]]
+})
+
+box.schema.func.drop('add_superpower', {if_exists = true})
+box.schema.func.create('add_superpower', {
+    body = [[
+        function(args)
+            task_id = box.space.tasks.index.token:select({args.token})[1]['id']
+
+            if (task_id == nil) then
+                return
+            end
+
+            completed_task = box.space.user_tasks.index.user_task:select({args.vkid, task_id})
+
+            if (completed_task[1] == nil) then
+                box.space.user_tasks:insert({args.vkid, task_id})
+                box.space.game:update(args.vkid, {{'+', 2, 1}})
+            end
+        end
+    ]]
+})
+
+box.schema.func.drop('superpowers', {if_exists = true})
+box.schema.func.create('superpowers', {
+    body = [[
+        function(args)
+            return box.space.game.index.primary:select({args.vkid})[1]['superpowers']
         end
     ]]
 })

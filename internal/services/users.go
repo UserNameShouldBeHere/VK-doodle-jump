@@ -14,6 +14,8 @@ type UsersStorage interface {
 	GetTopUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
 	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
 	UserScore(ctx context.Context, vkid int) (int, error)
+	GetSuperpowers(ctx context.Context, vkid int) (int, error)
+	UseSuperpower(ctx context.Context, vkid int) error
 }
 
 type UsersService struct {
@@ -66,4 +68,24 @@ func (s *UsersService) UserScore(ctx context.Context, vkid int) (int, error) {
 	}
 
 	return score, nil
+}
+
+func (s *UsersService) GetSuperpowers(ctx context.Context, vkid int) (int, error) {
+	superpowers, err := s.storage.GetSuperpowers(ctx, vkid)
+	if err != nil {
+		s.logger.Errorf("(usersService.GetSuperpowers): %w", err)
+		return 0, fmt.Errorf("(usersService.GetSuperpowers): %w", err)
+	}
+
+	return superpowers, nil
+}
+
+func (s *UsersService) UseSuperpower(ctx context.Context, vkid int) error {
+	err := s.storage.UseSuperpower(ctx, vkid)
+	if err != nil {
+		s.logger.Errorf("(usersService.UseSuperpower): %w", err)
+		return fmt.Errorf("(usersService.UseSuperpower): %w", err)
+	}
+
+	return nil
 }
