@@ -3,17 +3,20 @@ package services
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
 	customErrors "github.com/UserNameShouldBeHere/VK-doodle-jump/internal/errors"
+	"github.com/golang-jwt/jwt"
 )
 
 type AuthStorage interface {
@@ -30,9 +33,17 @@ type AuthService struct {
 
 	oauthUrl string
 	clientId string
+	csrfKey  []byte
 }
 
 func NewAuthService(authStorage AuthStorage, logger *zap.SugaredLogger) (*AuthService, error) {
+	csrfKey := make([]byte, 16)
+	_, err := rand.Read(csrfKey)
+	if err != nil {
+		logger.Errorf("(adminShopService.NewAdminShopService): %w", err)
+		return nil, fmt.Errorf("(adminShopService.NewAdminShopService): %w", err)
+	}
+
 	return &AuthService{
 		authStorage: authStorage,
 		logger:      logger,
@@ -303,4 +314,32 @@ func (s *AuthService) apiCall(apiUrl string, urlValues url.Values, target interf
 	}
 
 	return *respErr, nil
+}
+
+func (s *AuthService) CreateCsrfToken() (string, error) {
+	claims := jwt.StandardClaims{
+		IssuedAt:  time.Now().Unix(),
+		ExpiresAt: time.Now().Add(time.Hour * 6).Unix(),
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString(s.csrfKey)
+	if err != nil {
+		return "", fmt.Errorf("(AuthHandler.createToken): %w", err)
+	}
+
+	return signedToken, nil
+}
+
+func (s *AuthService) ValidateCsfrToken(token string) error {
+	parsedToken, err := jwt.Parse(token,
+		func(token *jwt.Token) (interface{}, error) {
+			return s.csrfKey, nil
+		},
+	)
+	if err != nil || !parsedToken.Valid {
+		return err
+	}
+
+	return nil
 }

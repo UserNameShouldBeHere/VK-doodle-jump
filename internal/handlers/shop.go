@@ -11,6 +11,7 @@ import (
 
 type ShopService interface {
 	GetTasks(ctx context.Context, vkid int) ([]domain.TaskData, error)
+	GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error)
 }
 
 type ShopHandler struct {
@@ -67,6 +68,31 @@ func (h *ShopHandler) GetTasks(w http.ResponseWriter, req *http.Request) {
 		Data: TasksResponse{
 			Tasks: tasks,
 		},
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *ShopHandler) GetCurrentGiftaway(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	giftaway, err := h.shopService.GetCurrentGiftaway(ctx)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   giftaway,
 	})
 	if err != nil {
 		h.logger.Errorf("error at writing response: %v", err)

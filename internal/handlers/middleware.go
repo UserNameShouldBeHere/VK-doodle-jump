@@ -198,3 +198,25 @@ func (h *MiddlewareHandler) Admin(next http.Handler) http.Handler {
 		next.ServeHTTP(w, req)
 	})
 }
+
+func (h *MiddlewareHandler) Csrf(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.Method == http.MethodPost {
+			token := req.Header.Get("X-CSRF-TOKEN")
+
+			err := h.authService.ValidateCsfrToken(token)
+			if err != nil {
+				err = WriteResponse(w, ResponseData{
+					Status: http.StatusUnauthorized,
+					Data:   nil,
+				})
+				if err != nil {
+					h.logger.Errorf("unable to decode http request: %v", err)
+				}
+				return
+			}
+		}
+
+		next.ServeHTTP(w, req)
+	})
+}

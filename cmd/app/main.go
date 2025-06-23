@@ -187,6 +187,7 @@ func initRouter(
 	authRouter.HandleFunc("/logout", authHandler.Logout).Methods("POST", "OPTIONS")
 
 	// profileRouter.Use(middlewareHandler.Auth)
+	// profileRouter.Use(middlewareHandler.Csrf)
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.GetNearbyUsers).Methods("GET", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/rating", profileHandler.UpdateRating).Methods("POST", "OPTIONS")
 	profileRouter.HandleFunc("/{vkid}/score", profileHandler.GetScore).Methods("GET", "OPTIONS")
@@ -197,6 +198,7 @@ func initRouter(
 
 	// adminShopRouter.Use(middlewareHandler.Auth)
 	// adminShopRouter.Use(middlewareHandler.Admin)
+	// adminShopRouter.Use(middlewareHandler.Csrf)
 	adminShopRouter.HandleFunc("/promocodes", adminShopHandler.GetPromocodes).Methods("GET", "OPTIONS")
 	adminShopRouter.HandleFunc("/promocode/add", adminShopHandler.AddPromocode).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/promocode/update", adminShopHandler.UpdatePromocode).Methods("POST", "OPTIONS")
@@ -210,10 +212,14 @@ func initRouter(
 	adminShopRouter.HandleFunc("/task/update", adminShopHandler.UpdateTask).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/task/delete", adminShopHandler.DeleteTask).Methods("POST", "OPTIONS")
 
+	// apiRouter.Use(middlewareHandler.Csrf)
 	apiRouter.HandleFunc("/{vkid}/task", adminShopHandler.PassTask).Methods("POST", "OPTIONS")
 
 	// shopRouter.Use(middlewareHandler.Auth)
+	// shopRouter.Use(middlewareHandler.Csrf)
 	shopRouter.HandleFunc("/tasks", shopHandler.GetTasks).Methods("GET", "OPTIONS")
+
+	shopRouter.HandleFunc("/gifts/giftaway", shopHandler.GetCurrentGiftaway).Methods("GET", "OPTIONS")
 
 	return router
 }

@@ -140,7 +140,8 @@ box.schema.func.create('users_top', {
             pos = -1
             
             for _, user in ipairs(box.space.users.index.score_update:select({}, {limit = lim})) do
-                table.insert(res, box.tuple.new({user.name, user.max_score}))
+                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
+                table.insert(res, box.tuple.new({name, user.max_score}))
                 
                 if (user.vkid == args.vkid) then
                     pos = cnt
@@ -167,14 +168,17 @@ box.schema.func.create('users_nearby', {
             currentUser = box.space.users.index.primary:select({args.vkid}, {limit = 1})[1]
 
             for _, user in ipairs(box.space.users.index.score_update:select({currentUser.max_score}, {limit = lim, iterator = 'LT'})) do
-                table.insert(res, box.tuple.new({user.name, user.max_score}))
+                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
+                table.insert(res, box.tuple.new({name, user.max_score}))
                 downCnt = downCnt + 1
             end
 
-            table.insert(res, box.tuple.new({currentUser.name, currentUser.max_score}))
+            name = box.space.game.index.primary:select({args.vkid}, {limit = 1})[1]['in_game_name']
+            table.insert(res, box.tuple.new({name, currentUser.max_score}))
 
             for _, user in ipairs(box.space.users.index.score_update:select({currentUser.max_score}, {limit = lim, iterator = 'GT'})) do
-                table.insert(res, box.tuple.new({user.name, user.max_score}))
+                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
+                table.insert(res, box.tuple.new({name, user.max_score}))
                 upCnt = upCnt + 1
             end
 
@@ -372,6 +376,7 @@ box.schema.space.create('game')
 box.space.game:format({
     {name = 'vkid', type = 'unsigned'},
     {name = 'superpowers', type = 'unsigned'},
+    {name = 'in_game_name', type = 'string'},
 })
 
 box.space.game:create_index('primary', {type = 'tree', parts = {'vkid'}})
@@ -418,3 +423,69 @@ box.schema.func.create('superpowers', {
         end
     ]]
 })
+
+-- ===================================
+
+box.schema.space.create('giftaways')
+box.schema.sequence.create('giftaways_id_seq', {min = 1, start = 1})
+
+box.space.giftaways:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'description', type = 'string'},
+    {name = 'details', type = 'string'},
+    {name = 'from', type = 'datetime'},
+    {name = 'to', type = 'datetime'},
+})
+
+box.space.giftaways:create_index('primary', {sequence = 'giftaways_id_seq', type = 'tree', parts = {'id'}})
+box.space.giftaways:create_index('from', {type = 'tree', parts = {'from'}})
+
+box.schema.func.drop('current_giftaway', {if_exists = true})
+box.schema.func.create('current_giftaway', {
+    body = [[
+        function(args)
+            current = box.space.giftaways.index.from:select({}, {limit = 1, iterator = 'LT'})[1]
+
+            if (current.to < datetime.now()) then
+                return nil
+            end
+
+            gifts = {}
+
+            for _, gift in ipairs(box.space.gifts.index.giftaway:select({current.id})) do
+                table.insert(gifts, box.tuple.new({
+                    gift.id,
+                    gift.name,
+                    gift.description,
+                    gift.photo,
+                    gift.count
+                }))
+            end
+
+            res = {}
+            table.insert(res, box.tuple.new({
+                current,
+                gifts
+            }))
+
+            return res
+        end
+    ]]
+})
+
+-- ===================================
+
+box.schema.space.create('gifts')
+box.schema.sequence.create('gifts_id_seq', {min = 1, start = 1})
+
+box.space.gifts:format({
+    {name = 'id', type = 'unsigned'},
+    {name = 'giftaway', type = 'unsigned'},
+    {name = 'name', type = 'string'},
+    {name = 'photo', type = 'string'},
+    {name = 'description', type = 'string'},
+    {name = 'count', type = 'unsigned'},
+})
+
+box.space.gifts:create_index('primary', {sequence = 'gifts_id_seq', type = 'tree', parts = {'id'}})
+box.space.gifts:create_index('giftaway', {type = 'tree', unique = false, parts = {'giftaway'}})

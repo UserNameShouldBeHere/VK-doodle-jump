@@ -3,6 +3,10 @@ package tarantool
 import (
 	"context"
 	"fmt"
+	"log"
+	"math/rand/v2"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
@@ -177,11 +181,14 @@ func (s *AuthStorage) createUser(ctx context.Context, signInData domain.SignInDa
 		return fmt.Errorf("(tarantool.createUser) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
+	randomName := s.genName()
+
 	_, err = s.conn.Do(
 		tarantool.NewInsertRequest("game").
 			Tuple([]interface{}{
 				signInData.User.VkId,
 				0,
+				randomName,
 			}).
 			Context(ctx),
 	).Get()
@@ -219,4 +226,20 @@ func (s *AuthStorage) updateSession(ctx context.Context, signInData domain.SignI
 	}
 
 	return nil
+}
+
+func (s *AuthStorage) genName() string {
+	file1, err := os.ReadFile("./internal/repository/part1.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	part1 := strings.Split(string(file1), "\n")
+
+	file2, err := os.ReadFile("./internal/repository/part2.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	part2 := strings.Split(string(file2), "\n")
+
+	return part1[rand.IntN(490)] + " " + part2[rand.IntN(480)]
 }

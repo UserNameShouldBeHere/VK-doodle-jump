@@ -11,6 +11,7 @@ import (
 
 type ShopStorage interface {
 	GetTasks(ctx context.Context, vkid int) ([]domain.TaskData, error)
+	GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error)
 }
 
 type ShopService struct {
@@ -33,4 +34,14 @@ func (s *ShopService) GetTasks(ctx context.Context, vkid int) ([]domain.TaskData
 	}
 
 	return tasks, nil
+}
+
+func (s *ShopService) GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error) {
+	giftaway, err := s.shopStorage.GetCurrentGiftaway(ctx)
+	if err != nil {
+		s.logger.Errorf("(shopService.GetCurrentGiftaway): %w", err)
+		return domain.Giftaway{}, fmt.Errorf("(shopService.GetCurrentGiftaway): %w", err)
+	}
+
+	return giftaway, nil
 }

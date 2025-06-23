@@ -3,6 +3,7 @@ package tarantool
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/UserNameShouldBeHere/VK-doodle-jump/internal/domain"
@@ -108,6 +109,10 @@ func (s *UsersStorage) GetNearbyUsers(ctx context.Context, vkid, count int) (dom
 	if err != nil {
 		return domain.UserRatingWithPos{}, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
+
+	tmp := data[0].Users[0:data[0].CurrentPos]
+	slices.Reverse(tmp)
+	data[0].Users = append(tmp, data[0].Users[data[0].CurrentPos:]...)
 
 	return data[0], nil
 }

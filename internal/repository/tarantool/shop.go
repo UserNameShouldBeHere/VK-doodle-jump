@@ -42,3 +42,29 @@ func (s *ShopStorage) GetTasks(ctx context.Context, vkid int) ([]domain.TaskData
 
 	return data[0], nil
 }
+
+func (s *ShopStorage) GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error) {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("current_giftaway").
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return domain.Giftaway{}, fmt.Errorf("(tarantool.GetCurrentGiftaway) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	var data [][]domain.GiftawayT
+	err = resp.DecodeTyped(&data)
+	if err != nil {
+		return domain.Giftaway{}, fmt.Errorf("(tarantool.GetCurrentGiftaway) %w: %v", customErrors.ErrTarantoolDecode, err)
+	}
+
+	res := domain.Giftaway{}
+	res.Info.Id = data[0][0].Info.Id
+	res.Info.Description = data[0][0].Info.Description
+	res.Info.Details = data[0][0].Info.Details
+	res.Info.From = data[0][0].Info.From.ToTime()
+	res.Info.To = data[0][0].Info.To.ToTime()
+	res.Gifts = data[0][0].Gifts
+
+	return res, nil
+}

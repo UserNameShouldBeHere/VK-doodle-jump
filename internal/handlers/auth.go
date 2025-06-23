@@ -18,6 +18,8 @@ type AuthService interface {
 	Check(ctx context.Context, session domain.SignInData, state, deviceId string) (domain.SignInData, error)
 	Logout(ctx context.Context, session domain.SignInData, state, deviceId string) error
 	IsAdmin(ctx context.Context, vkid int) (bool, error)
+	CreateCsrfToken() (string, error)
+	ValidateCsfrToken(token string) error
 }
 
 type AuthHandler struct {
@@ -37,6 +39,7 @@ type signInResponse struct {
 	Name        string `json:"name"`
 	Avatar      string `json:"avatar"`
 	IsFirstTime bool   `json:"is_first_time"`
+	Token       string `json:"token"`
 }
 
 func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
@@ -110,6 +113,20 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 	http.SetCookie(w, refreshCookie)
 	http.SetCookie(w, vkIdCookie)
 
+	token, err := h.authService.CreateCsrfToken()
+	if err != nil {
+		h.logger.Errorf("failed to generate csrf token: %v", err)
+
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusInternalServerError,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
 		Data: signInResponse{
@@ -117,6 +134,7 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 			Name:        signInData.User.Name,
 			Avatar:      signInData.User.Avatar,
 			IsFirstTime: isFirstTime,
+			Token:       token,
 		},
 	})
 	if err != nil {
@@ -207,12 +225,27 @@ func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 	http.SetCookie(w, refreshCookie)
 	http.SetCookie(w, vkIdCookie)
 
+	token, err := h.authService.CreateCsrfToken()
+	if err != nil {
+		h.logger.Errorf("failed to generate csrf token: %v", err)
+
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusInternalServerError,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
 		Data: signInResponse{
 			VkId:   signInData.User.VkId,
 			Name:   signInData.User.Name,
 			Avatar: signInData.User.Avatar,
+			Token:  token,
 		},
 	})
 	if err != nil {
