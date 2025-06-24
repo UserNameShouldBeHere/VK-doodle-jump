@@ -91,7 +91,7 @@ func (s *UsersStorage) GetTopUsers(ctx context.Context, vkid, count int) (domain
 	return data[0], nil
 }
 
-func (s *UsersStorage) GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error) {
+func (s *UsersStorage) GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UsersNearbyRating, error) {
 	resp, err := s.conn.Do(
 		tarantool.NewCallRequest("users_nearby").
 			Args([]interface{}{map[string]interface{}{
@@ -101,13 +101,13 @@ func (s *UsersStorage) GetNearbyUsers(ctx context.Context, vkid, count int) (dom
 			Context(ctx),
 	).GetResponse()
 	if err != nil {
-		return domain.UserRatingWithPos{}, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolExec, err)
+		return domain.UsersNearbyRating{}, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
-	var data []domain.UserRatingWithPos
+	var data []domain.UsersNearbyRating
 	err = resp.DecodeTyped(&data)
 	if err != nil {
-		return domain.UserRatingWithPos{}, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolDecode, err)
+		return domain.UsersNearbyRating{}, fmt.Errorf("(tarantool.GetNearbyUsers) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
 	tmp := data[0].Users[0:data[0].CurrentPos]

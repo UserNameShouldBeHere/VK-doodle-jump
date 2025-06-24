@@ -12,7 +12,7 @@ import (
 type UsersStorage interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
 	GetTopUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
-	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
+	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UsersNearbyRating, error)
 	UserScore(ctx context.Context, vkid int) (int, error)
 	GetSuperpowers(ctx context.Context, vkid int) (int, error)
 	UseSuperpower(ctx context.Context, vkid int) error
@@ -50,11 +50,11 @@ func (s *UsersService) GetTopUsers(ctx context.Context, vkid, count int) (domain
 	return usersTop, nil
 }
 
-func (s *UsersService) GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error) {
+func (s *UsersService) GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UsersNearbyRating, error) {
 	usersTop, err := s.storage.GetNearbyUsers(ctx, vkid, count)
 	if err != nil {
 		s.logger.Errorf("(usersService.GetNearbyUsers): %w", err)
-		return domain.UserRatingWithPos{}, fmt.Errorf("(usersService.GetNearbyUsers): %w", err)
+		return domain.UsersNearbyRating{}, fmt.Errorf("(usersService.GetNearbyUsers): %w", err)
 	}
 
 	return usersTop, nil

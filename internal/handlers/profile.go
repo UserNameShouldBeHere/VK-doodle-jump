@@ -16,7 +16,7 @@ import (
 type UsersService interface {
 	UpdateUserRating(ctx context.Context, vkid int, newScore int) error
 	GetTopUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
-	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UserRatingWithPos, error)
+	GetNearbyUsers(ctx context.Context, vkid, count int) (domain.UsersNearbyRating, error)
 	UserScore(ctx context.Context, vkid int) (int, error)
 	GetSuperpowers(ctx context.Context, vkid int) (int, error)
 	UseSuperpower(ctx context.Context, vkid int) error

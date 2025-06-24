@@ -166,20 +166,28 @@ box.schema.func.create('users_nearby', {
             upCnt = 0
             
             currentUser = box.space.users.index.primary:select({args.vkid}, {limit = 1})[1]
+            
+            currentPos = 1
+            for _, user in ipairs(box.space.users.index.score_update:select({currentUser.max_score}, {iterator = 'LT'})) do
+                currentPos = currentPos + 1
+            end
 
             for _, user in ipairs(box.space.users.index.score_update:select({currentUser.max_score}, {limit = lim, iterator = 'LT'})) do
-                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
-                table.insert(res, box.tuple.new({name, user.max_score}))
                 downCnt = downCnt + 1
+                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
+                table.insert(res, box.tuple.new({currentPos - downCnt, name, user.max_score}))
+                -- table.insert(res, box.tuple.new({currentPos - downCnt, user.name, user.max_score}))
             end
 
             name = box.space.game.index.primary:select({args.vkid}, {limit = 1})[1]['in_game_name']
-            table.insert(res, box.tuple.new({name, currentUser.max_score}))
+            table.insert(res, box.tuple.new({currentPos, name, currentUser.max_score}))
+            -- table.insert(res, box.tuple.new({currentPos, currentUser.name, currentUser.max_score}))
 
             for _, user in ipairs(box.space.users.index.score_update:select({currentUser.max_score}, {limit = lim, iterator = 'GT'})) do
-                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
-                table.insert(res, box.tuple.new({name, user.max_score}))
                 upCnt = upCnt + 1
+                name = box.space.game.index.primary:select({user.vkid}, {limit = 1})[1]['in_game_name']
+                table.insert(res, box.tuple.new({currentPos + upCnt, name, user.max_score}))
+                -- table.insert(res, box.tuple.new({currentPos + upCnt, user.name, user.max_score}))
             end
 
             return box.tuple.new({res, downCnt})
