@@ -51,10 +51,10 @@ func (s *AdminShopStorage) FillAdmins(ctx context.Context, admins []int) error {
 		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
 	}
 
-	_, err = s.conn.Do(
+	s.conn.Do(
 		tarantool.NewInsertRequest("giftaways").
 			Tuple([]interface{}{
-				nil,
+				1,
 				"description",
 				"details",
 				from,
@@ -62,10 +62,6 @@ func (s *AdminShopStorage) FillAdmins(ctx context.Context, admins []int) error {
 			}).
 			Context(ctx),
 	).Get()
-
-	if err != nil {
-		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrTarantoolExec, err)
-	}
 
 	return nil
 }
