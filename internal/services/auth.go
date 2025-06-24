@@ -338,7 +338,7 @@ func (s *AuthService) ValidateCsfrToken(token string) error {
 		},
 	)
 	if err != nil || !parsedToken.Valid {
-		return err
+		return fmt.Errorf("(AuthHandler.ValidateCsfrToken) invalid csrf token: %w", err)
 	}
 
 	return nil

@@ -11,3 +11,5 @@ server:
     port: 3301
     user: "admin"
     password: "pass"
+    admins:
+      - 12345

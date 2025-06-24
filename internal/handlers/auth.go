@@ -39,7 +39,6 @@ type signInResponse struct {
 	Name        string `json:"name"`
 	Avatar      string `json:"avatar"`
 	IsFirstTime bool   `json:"is_first_time"`
-	Token       string `json:"token"`
 }
 
 func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
@@ -127,6 +126,8 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("X-CSRF-TOKEN", token)
+
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
 		Data: signInResponse{
@@ -134,7 +135,6 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 			Name:        signInData.User.Name,
 			Avatar:      signInData.User.Avatar,
 			IsFirstTime: isFirstTime,
-			Token:       token,
 		},
 	})
 	if err != nil {
@@ -239,13 +239,14 @@ func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("X-CSRF-TOKEN", token)
+
 	err = WriteResponse(w, ResponseData{
 		Status: http.StatusOK,
 		Data: signInResponse{
 			VkId:   signInData.User.VkId,
 			Name:   signInData.User.Name,
 			Avatar: signInData.User.Avatar,
-			Token:  token,
 		},
 	})
 	if err != nil {
