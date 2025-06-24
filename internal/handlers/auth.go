@@ -126,6 +126,7 @@ func (h *AuthHandler) SignIn(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("Access-Control-Expose-Headers", "X-CSRF-TOKEN")
 	w.Header().Set("X-CSRF-TOKEN", token)
 
 	err = WriteResponse(w, ResponseData{
@@ -239,6 +240,7 @@ func (h *AuthHandler) Check(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	w.Header().Set("Access-Control-Expose-Headers", "X-CSRF-TOKEN")
 	w.Header().Set("X-CSRF-TOKEN", token)
 
 	err = WriteResponse(w, ResponseData{
