@@ -26,6 +26,10 @@ type AdminShopStorage interface {
 	UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error
 	DeleteTask(ctx context.Context, id int) error
 	AddSuperpower(ctx context.Context, vkid int, task string) error
+	GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error)
+	AddGift(ctx context.Context, newGift domain.Gift) error
+	UpdateGift(ctx context.Context, newGift domain.Gift) error
+	DeleteGift(ctx context.Context, id int) error
 }
 
 type AdminShopService struct {
@@ -193,8 +197,44 @@ func (s *AdminShopService) AddSuperpower(ctx context.Context, vkid int, task str
 	return nil
 }
 
-type myCustomClaims struct {
-	jwt.StandardClaims
+func (s *AdminShopService) GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error) {
+	giftaway, err := s.shopStorage.GetCurrentGiftaway(ctx)
+	if err != nil {
+		s.logger.Errorf("failed to get giftaway: %w", err)
+		return domain.Giftaway{}, fmt.Errorf("(services.GetCurrentGiftaway): %w", err)
+	}
+
+	return giftaway, nil
+}
+
+func (s *AdminShopService) AddGift(ctx context.Context, newGift domain.Gift) error {
+	err := s.shopStorage.AddGift(ctx, newGift)
+	if err != nil {
+		s.logger.Errorf("failed to add gift: %w", err)
+		return fmt.Errorf("(services.AddGift): %w", err)
+	}
+
+	return nil
+}
+
+func (s *AdminShopService) UpdateGift(ctx context.Context, newGift domain.Gift) error {
+	err := s.shopStorage.UpdateGift(ctx, newGift)
+	if err != nil {
+		s.logger.Errorf("failed to update gift: %w", err)
+		return fmt.Errorf("(services.UpdateGift): %w", err)
+	}
+
+	return nil
+}
+
+func (s *AdminShopService) DeleteGift(ctx context.Context, id int) error {
+	err := s.shopStorage.DeleteGift(ctx, id)
+	if err != nil {
+		s.logger.Errorf("failed to delete gift: %w", err)
+		return fmt.Errorf("(services.DeleteGift): %w", err)
+	}
+
+	return nil
 }
 
 func (s *AdminShopService) createToken() (string, error) {

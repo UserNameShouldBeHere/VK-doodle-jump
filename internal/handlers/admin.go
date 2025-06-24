@@ -26,6 +26,10 @@ type AdminShopService interface {
 	UpdateTask(ctx context.Context, newTask domain.TaskAdminData) error
 	DeleteTask(ctx context.Context, id int) error
 	AddSuperpower(ctx context.Context, vkid int, task string) error
+	GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error)
+	AddGift(ctx context.Context, newGift domain.Gift) error
+	UpdateGift(ctx context.Context, newGift domain.Gift) error
+	DeleteGift(ctx context.Context, id int) error
 }
 
 type AdminShopHandler struct {
@@ -596,6 +600,197 @@ func (h *AdminShopHandler) DeleteTask(w http.ResponseWriter, req *http.Request) 
 	}
 
 	err = h.shopService.DeleteTask(ctx, reqData.Id)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type GiftawayAdminResponse struct {
+	Giftaway domain.Giftaway `json:"giftaway"`
+}
+
+func (h *AdminShopHandler) GetGiftaway(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	giftaway, err := h.shopService.GetCurrentGiftaway(ctx)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data: GiftawayAdminResponse{
+			Giftaway: giftaway,
+		},
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+type UpdateGiftRequest struct {
+	Gift domain.Gift `json:"gift"`
+}
+
+func (h *AdminShopHandler) AddGift(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("unable to decode http request: %v", err)
+		}
+		return
+	}
+
+	var reqData UpdateGiftRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.AddGift(ctx, reqData.Gift)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *AdminShopHandler) UpdateGift(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("unable to decode http request: %v", err)
+		}
+		return
+	}
+
+	var reqData UpdateGiftRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.UpdateGift(ctx, reqData.Gift)
+	if err != nil {
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+
+		return
+	}
+
+	err = WriteResponse(w, ResponseData{
+		Status: http.StatusOK,
+		Data:   nil,
+	})
+	if err != nil {
+		h.logger.Errorf("error at writing response: %v", err)
+	}
+}
+
+func (h *AdminShopHandler) DeleteGift(w http.ResponseWriter, req *http.Request) {
+	ctx := req.Context()
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		h.logger.Errorf("unable to read request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("unable to decode http request: %v", err)
+		}
+		return
+	}
+
+	var reqData IdRequest
+	err = json.Unmarshal(body, &reqData)
+	if err != nil {
+		h.logger.Errorf("unable to unmarshall request body: %v", err)
+		err = WriteResponse(w, ResponseData{
+			Status: http.StatusBadRequest,
+			Data:   nil,
+		})
+		if err != nil {
+			h.logger.Errorf("error at writing response: %v", err)
+		}
+		return
+	}
+
+	err = h.shopService.DeleteGift(ctx, reqData.Id)
 	if err != nil {
 		err = WriteResponse(w, ResponseData{
 			Status: http.StatusBadRequest,

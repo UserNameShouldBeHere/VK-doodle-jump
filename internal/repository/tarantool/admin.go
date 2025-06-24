@@ -380,3 +380,123 @@ func (s *AdminShopStorage) AddSuperpower(ctx context.Context, vkid int, task str
 
 	return nil
 }
+
+func (s *AdminShopStorage) GetCurrentGiftaway(ctx context.Context) (domain.Giftaway, error) {
+	resp, err := s.conn.Do(
+		tarantool.NewCallRequest("current_giftaway").
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		return domain.Giftaway{}, fmt.Errorf("(tarantool.GetCurrentGiftaway) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	var data [][]domain.GiftawayT
+	err = resp.DecodeTyped(&data)
+	if err != nil {
+		return domain.Giftaway{}, fmt.Errorf("(tarantool.GetCurrentGiftaway) %w: %v", customErrors.ErrTarantoolDecode, err)
+	}
+
+	res := domain.Giftaway{}
+	res.Info.Id = data[0][0].Info.Id
+	res.Info.Description = data[0][0].Info.Description
+	res.Info.Details = data[0][0].Info.Details
+	res.Info.From = data[0][0].Info.From.ToTime()
+	res.Info.To = data[0][0].Info.To.ToTime()
+	res.Gifts = data[0][0].Gifts
+
+	return res, nil
+}
+
+func (s *AdminShopStorage) AddGift(ctx context.Context, newGift domain.Gift) error {
+	tm := time.Now()
+
+	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
+	from, err := datetime.MakeDatetime(tm)
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
+	}
+
+	tm = time.Now().Add(time.Hour * 24 * 30)
+	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
+	to, err := datetime.MakeDatetime(tm)
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewCallRequest("current_giftaway").
+			Context(ctx),
+	).GetResponse()
+	if err != nil {
+		_, err = s.conn.Do(
+			tarantool.NewInsertRequest("giftaways").
+				Tuple([]interface{}{
+					nil,
+					"description",
+					"details",
+					from,
+					to,
+				}).
+				Context(ctx),
+		).Get()
+
+		if err != nil {
+			return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrTarantoolExec, err)
+		}
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewInsertRequest("tasks").
+			Tuple([]interface{}{
+				nil,
+				1,
+				newGift.Name,
+				newGift.Photo,
+				newGift.Description,
+				newGift.Count,
+			}).
+			Context(ctx),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	return nil
+}
+
+func (s *AdminShopStorage) UpdateGift(ctx context.Context, newGift domain.Gift) error {
+	_, err := s.conn.Do(
+		tarantool.NewUpdateRequest("gifts").
+			Index("primary").
+			Key([]interface{}{newGift.Id}).
+			Operations(tarantool.NewOperations().
+				Assign(2, newGift.Name).
+				Assign(3, newGift.Photo).
+				Assign(4, newGift.Description).
+				Assign(5, newGift.Count),
+			).
+			Context(ctx),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.UpdateGift) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	return nil
+}
+
+func (s *AdminShopStorage) DeleteGift(ctx context.Context, id int) error {
+	_, err := s.conn.Do(
+		tarantool.NewDeleteRequest("gifts").
+			Index("primary").
+			Key([]interface{}{id}).
+			Context(ctx),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.DeleteGift) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
+	return nil
+}
