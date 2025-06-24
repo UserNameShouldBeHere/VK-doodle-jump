@@ -216,8 +216,7 @@ func initRouter(
 	adminShopRouter.HandleFunc("/gifts/update", adminShopHandler.UpdateGift).Methods("POST", "OPTIONS")
 	adminShopRouter.HandleFunc("/gifts/delete", adminShopHandler.DeleteGift).Methods("POST", "OPTIONS")
 
-	apiRouter.Use(middlewareHandler.Csrf)
-	apiRouter.HandleFunc("/{vkid}/task", adminShopHandler.PassTask).Methods("POST", "OPTIONS")
+	adminShopRouter.HandleFunc("/{vkid}/task", adminShopHandler.PassTask).Methods("POST", "OPTIONS")
 
 	shopRouter.Use(middlewareHandler.Auth)
 	shopRouter.Use(middlewareHandler.Csrf)
