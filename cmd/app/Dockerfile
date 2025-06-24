@@ -14,5 +14,7 @@ WORKDIR /src
 
 COPY --from=build /src/app app
 COPY ./cmd/app/config.yml ./cmd/app/config.yml
+COPY ./internal/repository/part1.txt ./internal/repository/part1.txt
+COPY ./internal/repository/part2.txt ./internal/repository/part2.txt
 
 CMD ["./app"]
