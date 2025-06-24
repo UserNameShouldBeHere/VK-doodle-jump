@@ -7,7 +7,7 @@ import (
 )
 
 type Gift struct {
-	Id          int    `json:"id"`
+	Id          int    `json:"id,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Photo       string `json:"photo"`

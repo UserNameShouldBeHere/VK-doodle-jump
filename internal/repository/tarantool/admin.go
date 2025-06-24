@@ -36,6 +36,37 @@ func (s *AdminShopStorage) FillAdmins(ctx context.Context, admins []int) error {
 		return fmt.Errorf("(tarantool.FillAdmins) %w: %v", customErrors.ErrTarantoolExec, err)
 	}
 
+	tm := time.Now()
+
+	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
+	from, err := datetime.MakeDatetime(tm)
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
+	}
+
+	tm = time.Now().Add(time.Hour * 24 * 30)
+	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
+	to, err := datetime.MakeDatetime(tm)
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
+	}
+
+	_, err = s.conn.Do(
+		tarantool.NewInsertRequest("giftaways").
+			Tuple([]interface{}{
+				nil,
+				"description",
+				"details",
+				from,
+				to,
+			}).
+			Context(ctx),
+	).Get()
+
+	if err != nil {
+		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrTarantoolExec, err)
+	}
+
 	return nil
 }
 
@@ -408,45 +439,8 @@ func (s *AdminShopStorage) GetCurrentGiftaway(ctx context.Context) (domain.Gifta
 }
 
 func (s *AdminShopStorage) AddGift(ctx context.Context, newGift domain.Gift) error {
-	tm := time.Now()
-
-	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
-	from, err := datetime.MakeDatetime(tm)
-	if err != nil {
-		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
-	}
-
-	tm = time.Now().Add(time.Hour * 24 * 30)
-	tm = tm.In(time.FixedZone(datetime.NoTimezone, 0))
-	to, err := datetime.MakeDatetime(tm)
-	if err != nil {
-		return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrInternal, err)
-	}
-
-	_, err = s.conn.Do(
-		tarantool.NewCallRequest("current_giftaway").
-			Context(ctx),
-	).GetResponse()
-	if err != nil {
-		_, err = s.conn.Do(
-			tarantool.NewInsertRequest("giftaways").
-				Tuple([]interface{}{
-					nil,
-					"description",
-					"details",
-					from,
-					to,
-				}).
-				Context(ctx),
-		).Get()
-
-		if err != nil {
-			return fmt.Errorf("(tarantool.AddGift) %w: %v", customErrors.ErrTarantoolExec, err)
-		}
-	}
-
-	_, err = s.conn.Do(
-		tarantool.NewInsertRequest("tasks").
+	_, err := s.conn.Do(
+		tarantool.NewInsertRequest("gifts").
 			Tuple([]interface{}{
 				nil,
 				1,
