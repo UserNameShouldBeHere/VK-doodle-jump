@@ -50,7 +50,7 @@ func (s *UsersStorage) UpdateUserRating(ctx context.Context, vkid int, newScore 
 		return fmt.Errorf("(tarantool.UpdateUserRating) %w: %v", customErrors.ErrTarantoolDecode, err)
 	}
 
-	if prevScore[0] < newScore {
+	if prevScore[0] < newScore && newScore < 10000 {
 		_, err = s.conn.Do(
 			tarantool.NewUpdateRequest("users").
 				Index("primary").
